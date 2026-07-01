@@ -1,6 +1,22 @@
 # Plot2D
 
-`Plot2D` is a *class* that defines the features of the plot and **one** set of data pairs. It includes many features to tweak the final plot based on how you want it to look
+The header file [Plot2D.hpp](../headers/Plot2D.hpp) includes the main class `Plot2D` and some helper classes which will be explained here. First we will walk through the `Plot2D` class and then we will breifly explain the rest. `Plot2D` is a *class* that defines the features of the plot. It includes many features to tweak the final plot based on how you want it to look.
+
+There are two ways to initiate a class member:
+
+  1. **Initiate for a single curve line:** This will generate parameters for a single dataset containing one $x$ array values, and one $y$ array values.
+
+    ```C++
+    Plot2D(const dVec& xs, const dVec& ys, size_t w = 1000, size_t h = 1000, size_t pad = 100)
+    ```
+
+  2. **Initiate for multiple curve lines:** This will feed a `std::vector` of $x$ and $y$ arrays to be plotted.
+
+    ```C++
+    Plot2D(const Vec<Plot2DData> data, size_t w = 1000, size_t h = 1000, size_t pad = 100)
+    ```
+
+Although one can add new data to the plot after initiating for the single curve line type.
 
 ## Table of Contents
 
@@ -21,6 +37,10 @@
             1. [Pixel <-> Point](#pixel---point)
             2. [Calculations](#calculations)
             3. [Writing and Drawing](#writing-and-drawing)
+    4. [Extras](#extras)
+    5. [Other Classes](#other-classes)
+        1. [`LineStyle`](#linestyle)
+        2. [`Plot2DData`](#plot2ddata)
 
 ## Parameters and flags
 
@@ -200,3 +220,47 @@ These functions either draw some elements of the plot, or write the required tex
 
 1. **`void forceXMinMax(double xMin_, double xMax_)`:** This one forces `xMin` and `xMax` as the user desires, then calculates `xRange` and `xScale` based on that and sets the `yAxisVisible` flag.
 2. **`void forceYMinMax(double yMin_, double yMax_)`:** This one forces `yMin` and `yMax` as the user desires, then calculates `yRange` and `yScale` based on that and sets the `xAxisVisible` flag.
+
+## Extras
+
+Some extra elements added to the `Plot2D` class for better control over plots.
+
+1. **`Vec<Plot2DData> plotData`:** This is an array of a class `Plot2DData` which contains data for a plot (the $x$ values, $y$ values, the `LineStyle`, the line color, the line width).
+2. **`void addData(const dVec& x, const dVec& y, LineStyle ls, std::string lc, double lw)`:** Add one set of $x$ and $y$ arrays to the plot.
+3. **`void addMultipleData(const Vec<Plot2DData>& plotdata)`:** This one adds multiple sets of $x$ and $y$ array to plot.
+
+## Other Classes
+
+Two other classes has been added to add versatility to the plotting experience. One tracks the line style for the $x-y$ curve (`enum class LineStyle`) and the other is the one that helps plot multiple curves at the same plot (`class Plot2DData`).
+
+### `LineStyle`
+
+This is an `enum class`, which means it presents a bunch of options for a specific use, here it presents options for the style of the curve line that will be drawn. There are four styles for now.
+
+```C++
+enum class LineStyle
+{
+    Solid,
+    Dashed,
+    Dotted,
+    DashDot
+};
+```
+
+### `Plot2DData`
+
+This one holds the data needed for a curve line that will be drawn.
+
+```C++
+class Plot2DData
+{
+    public:
+        dVec xs;
+        dVec ys;
+        LineStyle lineStyle;
+        std::string lineColor;
+        double lineWidth;
+        Plot2DData(const dVec& x, const dVec& y, LineStyle ls, std::string lc, double lw)
+        : xs(x), ys(y), lineStyle(ls), lineColor(lc), lineWidth(lw) {};
+};
+```

@@ -241,6 +241,101 @@ class Plot2D
             yAxisVisible = ((xMax>0) && (xMin<=0)) || ((xMax>=0) && (xMin<0));
         };
         ~Plot2D(){};
+        inline void addData(const dVec& x, const dVec& y, LineStyle ls, std::string lc, double lw)
+        {
+            // Simple Safety Checks!
+            if ( x.empty() )
+                throw std::runtime_error("Empty data! Cannot plot empty dataset!");
+            if ( x.size() != y.size() )
+                throw std::runtime_error("Dimensional mismatch! 'x' and 'y' must have the same dimensions!");
+            Plot2DData pd(x,y,ls,lc,lw);
+            Plot2D::plotData.push_back(pd);
+            double localXMin = *std::min_element(pd.xs.begin(),pd.xs.end());
+            double localXMax = *std::max_element(pd.xs.begin(),pd.xs.end());
+            double localYMin = *std::min_element(pd.ys.begin(),pd.ys.end());
+            double localYMax = *std::max_element(pd.ys.begin(),pd.ys.end());
+            if ( localXMin<xMin ) xMin = localXMin;
+            if ( localXMax>xMax ) xMax = localXMax;
+            if ( localYMin<yMin ) yMin = localYMin;
+            if ( localYMax>yMax ) yMax = localYMax;
+            xRange = xMax - xMin;
+            yRange = yMax - yMin;
+            if ( xRange<2.0*epsilon )
+            {
+                xMin -= epsilon;
+                xMax += epsilon;
+                xRange = xMax-xMin;
+            }
+            if ( yRange<2.0*epsilon )
+            {
+                yMin -= epsilon;
+                yMax += epsilon;
+                yRange = yMax-yMin;
+            }
+            // Actual Drawn width and height;
+            drawW = width - (padding*2);
+            drawH = height - (padding*2);
+            // Calculating Scalings;
+            xScale = (std::abs(xRange) > epsilon)? (drawW/xRange) : 1.0;
+            yScale = (std::abs(yRange) > epsilon)? (drawH/yRange) : 1.0;
+            xAxisVisible = ((yMax>0) && (yMin<=0)) || ((yMax>=0) && (yMin<0));
+            yAxisVisible = ((xMax>0) && (xMin<=0)) || ((xMax>=0) && (xMin<0));
+        };
+        inline void addMultipleData(const Vec<Plot2DData>& plotdata)
+        {
+            if ( plotdata.empty() )
+            {
+                throw std::runtime_error("The data is empty! You must provide at least one set of data.");
+            }
+            for ( const auto pd : plotdata )
+            {
+                if ( (pd.xs.size() != pd.ys.size()) || (pd.xs.empty()) || (pd.ys.empty()) ) continue;
+                Plot2D::plotData.push_back(pd);
+                double localXMin = *std::min_element(pd.xs.begin(),pd.xs.end());
+                double localXMax = *std::max_element(pd.xs.begin(),pd.xs.end());
+                double localYMin = *std::min_element(pd.ys.begin(),pd.ys.end());
+                double localYMax = *std::max_element(pd.ys.begin(),pd.ys.end());
+                if ( localXMin<xMin )
+                {
+                    xMin = localXMin;
+                }
+                if ( localXMax>xMax )
+                {
+                    xMax = localXMax;
+                }
+                if ( localYMin<yMin )
+                {
+                    yMin = localYMin;
+                }
+                if ( localYMax>yMax )
+                {
+                    yMax = localYMax;
+                }
+            }
+            xRange = xMax - xMin;
+            yRange = yMax - yMin;
+            if ( xRange<2.0*epsilon )
+            {
+                xMin -= epsilon;
+                xMax += epsilon;
+                xRange = xMax-xMin;
+            }
+            if ( yRange<2.0*epsilon )
+            {
+                yMin -= epsilon;
+                yMax += epsilon;
+                yRange = yMax-yMin;
+            }
+            // Actual Drawn width and height;
+            drawW = width - (padding*2);
+            drawH = height - (padding*2);
+            // Calculating Scalings;
+            xScale = (std::abs(xRange) > epsilon)? (drawW/xRange) : 1.0;
+            yScale = (std::abs(yRange) > epsilon)? (drawH/yRange) : 1.0;
+            xAxisVisible = ((yMax>0) && (yMin<=0)) || ((yMax>=0) && (yMin<0));
+            yAxisVisible = ((xMax>0) && (xMin<=0)) || ((xMax>=0) && (xMin<0));
+
+        }
         inline void forceXMinMax(double xMin_, double xMax_)
         {
             double epsilon = 1.0e-10;
@@ -800,14 +895,14 @@ inline void Plot2D::plotSVG(const std::string& filename)
                 switch (pd.lineStyle)
                 {
                     case LineStyle::Dashed:
-                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
+                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)+"\"";
                         break;
                     case LineStyle::Dotted:
-                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
+                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)+"\"";
                         break;
                     case LineStyle::DashDot:
-                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)
-                                        +std::to_string(Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
+                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)
+                                        +std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)+"\"";
                         break;
                     case LineStyle::Solid:
                     default:
@@ -867,23 +962,22 @@ inline void Plot2D::plotSVG(const std::string& filename)
         {
             // The data points.
             std::string dashArrayAttr = "";
-            switch (plotLineStyle)
+            switch (Plot2D::plotLineStyle)
             {
                 case LineStyle::Dashed:
-                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
+                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)+"\"";
                     break;
                 case LineStyle::Dotted:
-                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
+                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)+"\"";
                     break;
                 case LineStyle::DashDot:
-                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)
-                                    +std::to_string(Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
+                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)
+                                    +std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)+"\"";
                     break;
                 case LineStyle::Solid:
                 default:
                     dashArrayAttr = "";
                     break;
-
             }
             if (xVals.size()>=std::floor(Plot2D::drawW/(13*Plot2D::plotLineWidth)))
             {
@@ -934,23 +1028,22 @@ inline void Plot2D::plotSVG(const std::string& filename)
         {
             // The data points.
             std::string dashArrayAttr = "";
-            switch (plotLineStyle)
+            switch (Plot2D::plotLineStyle)
             {
                 case LineStyle::Dashed:
-                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
+                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)+"\"";
                     break;
                 case LineStyle::Dotted:
-                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
+                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)+"\"";
                     break;
                 case LineStyle::DashDot:
-                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)
-                                    +std::to_string(Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
+                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)
+                                    +std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)+"\"";
                     break;
                 case LineStyle::Solid:
                 default:
                     dashArrayAttr = "";
                     break;
-
             }
             if (xVals.size()>=std::floor(Plot2D::drawW/(13*Plot2D::plotLineWidth)))
             {
@@ -1000,14 +1093,14 @@ inline void Plot2D::plotSVG(const std::string& filename)
                 switch (pd.lineStyle)
                 {
                     case LineStyle::Dashed:
-                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
+                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)+"\"";
                         break;
                     case LineStyle::Dotted:
-                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
+                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)+"\"";
                         break;
                     case LineStyle::DashDot:
-                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)
-                                        +std::to_string(Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
+                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)
+                                        +std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)+"\"";
                         break;
                     case LineStyle::Solid:
                     default:
