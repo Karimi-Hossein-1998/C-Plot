@@ -16,304 +16,379 @@ using dVec = Vec<double>;
 
 enum class LineStyle
 {
-  Solid,
-  Dashed,
-  Dotted,
-  DashDot
+    Solid,
+    Dashed,
+    Dotted,
+    DashDot
+};
+
+class Plot2DData
+{
+    public:
+        dVec xs;
+        dVec ys;
+        LineStyle lineStyle;
+        std::string lineColor;
+        double lineWidth;
+        Plot2DData(const dVec& x, const dVec& y, LineStyle ls, std::string lc, double lw)
+        : xs(x), ys(y), lineStyle(ls), lineColor(lc), lineWidth(lw) {};
 };
 
 class Plot2D
 {
     private:
-    // Set in initiatioin
-    size_t width;
-    size_t height;
-    dVec   xVals;
-    dVec   yVals;
-    size_t padding;
-    double xMax;
-    double xMin;
-    double xRange;
-    double yMax;
-    double yMin;
-    double yRange;
-    double xScale;
-    double yScale;
-    // Actual Drawn width and height;
-    size_t drawW;
-    size_t drawH;
-    bool   xAxisVisible;
-    bool   yAxisVisible;
-    // Set inside `drawTicks` function
-    dVec xTickPixelsX;
-    dVec xTickPointsX;
-    dVec yTickPixelsY;
-    dVec yTickPointsY;
-    double gLeft;
-    double gRight;
-    double gBottom;
-    double gTop;
-    size_t numYTicks;
-    double xStep;
-    double yStep;
-    // Set manually
-    bool   border                        = true;
-    bool   axis                          = true;
-    bool   ticks                         = true;
-    bool   grid                          = true;
-    bool   axisLabel                     = true;
-    bool   autoTicks                     = true;
-    bool   plotTitle                     = false;
-    size_t numXTicks                     = 11;
-    double tickMarkSize                  = 6.0;
-    double plotPad                       = 4.0;
-    double borderLineWidth               = 1.5;
-    double axisLineWidth                 = 2.5;
-    double gridLineWidth                 = 0.5;
-    double plotNumeralsFontSize          = 15.0;
-    double plotAxisLabelFontSize         = 16.0;
-    double plotTitleFontSize             = 20.0;
-    double plotLineWidth                 = 1.0;
-    size_t plotNumeralsSignificantDigits = 3;
-    LineStyle plotLineStyle = LineStyle::Solid;
-    std::string xAxisLabel        = "X";
-    std::string yAxisLabel        = "Y";
-    std::string plotTitleText      = "Title!";
-    // ----- Colors ----- //
-    std::string backColor          = "#ffffff";
-    std::string borderLineColor    = "#000000";
-    std::string axisLineColor      = "#000000";
-    std::string gridLineColor      = "#101010";
-    std::string plotNumeralsColor  = "#000000";
-    std::string plotLineColor      = "#0000ff";
-    std::string plotAxisLabelColor = "#1f1f1f";
-    std::string plotTitleColor     = "#000000";
-    // Pont -> Pixel & Pixel -> Point
-    inline double toPixelX( const double x) const {return padding + (x-xMin)*xScale;};
-    inline double toPixelY( const double y) const {return (height-padding) - (y-yMin)*yScale;};
-    inline double toPointX( const double x) const {return (x-padding)/xScale + xMin;};
-    inline double toPointY( const double y) const {return yMin - (y-height+padding)/yScale;};
-    // Plot options
-    inline void drawTicks(std::ofstream& file);
-    inline void drawGrid(std::ofstream& file);
-    inline void writeNumbers(std::ofstream& file);
-    inline void writeAxisLabels(std::ofstream& file);
-    inline void writeplotTitle(std::ofstream& file);
-    inline double calcAutoXTicksStep()
-    {
-        double rawStep  = xRange / (numXTicks - 1);
-        double exponent = std::floor(std::log10(rawStep));
-        double fraction = rawStep / std::pow(10.0,exponent);
-        double cleanFraction = 1.0;
-        if (fraction<1.5) cleanFraction = 1.0;
-        else if (fraction<2.25) cleanFraction = 2.0;
-        else if (fraction<3.75) cleanFraction = 2.5;
-        else if (fraction<7.5) cleanFraction = 5.0;
-        else cleanFraction = 10.0;
-        return cleanFraction*std::pow(10.0,exponent);
-    };
-    inline double calcAutoYTicksStep()
-    {
-        double rawStep  = yRange / (numYTicks - 1);
-        double exponent = std::floor(std::log10(rawStep));
-        double fraction = rawStep / std::pow(10.0,exponent);
-        double cleanFraction = 1.0;
-        if (fraction<1.5) cleanFraction = 1.0;
-        else if (fraction<2.25) cleanFraction = 2.0;
-        else if (fraction<3.75) cleanFraction = 2.5;
-        else if (fraction<7.5) cleanFraction = 5.0;
-        else cleanFraction = 10.0;
-        return cleanFraction*std::pow(10.0,exponent);
-    };
-    public:
-    Plot2D(const dVec& xs, const dVec& ys, size_t w = 1000, size_t h = 1000, size_t pad = 100)
-    : width(w), height(h), xVals(xs), yVals(ys), padding(pad)
-    {
-        // Simple Safety Checks!
-        if ( xVals.empty() )
-            throw std::runtime_error("Empty data! Cannot plot empty dataset!");
-        if ( xVals.size() != yVals.size() )
-            throw std::runtime_error("Dimensional mismatch! 'x' and 'y' must have the same dimensions!");
-        if ( (2*padding>=width) || (2*padding>=height) )
-            throw std::runtime_error("Padding is two large! It exceeds the height or width parameters.");
-        // Finding Data Ranges
-        xMax = *std::max_element(xVals.begin(), xVals.end());
-        xMin = *std::min_element(xVals.begin(), xVals.end());
-        yMax = *std::max_element(yVals.begin(), yVals.end());
-        yMin = *std::min_element(yVals.begin(), yVals.end());
-        xRange = xMax - xMin;
-        yRange = yMax - yMin;
-        if ( xRange<2.0e-10 )
-        {
-            xMin -= 1.0e-10;
-            xMax += 1.0e-10;
-            xRange = xMax-xMin;
-        }
-        if ( yRange<2.0e-10 )
-        {
-            yMin -= 1.0e-10;
-            yMax += 1.0e-10;
-            yRange = yMax-yMin;
-        }
-        // Actual Drawn width and height;
-        drawW = width - (padding*2);
-        drawH = height - (padding*2);
-        // Calculating Scalings;
         double epsilon = 1e-10;
-        xScale = (std::abs(xRange) > epsilon)? (drawW/xRange) : 1.0;
-        yScale = (std::abs(yRange) > epsilon)? (drawH/yRange) : 1.0;
-        xAxisVisible = ((yMax>0) && (yMin<=0)) || ((yMax>=0) && (yMin<0));
-        yAxisVisible = ((xMax>0) && (xMin<=0)) || ((xMax>=0) && (xMin<0));
-    };
-    ~Plot2D(){};
-    inline void forceXMinMax(double xMin_, double xMax_)
-    {
-        double epsilon = 1.0e-10;
-        xMin = xMin_;
-        xMax = xMax_;
-        xRange = xMax-xMin;
-        xScale = (std::abs(xRange) > epsilon)? (drawW/xRange) : 1.0;
-        yAxisVisible = ((xMax>0) && (xMin<=0)) || ((xMax>=0) && (xMin<0));
-    }
-    // Plot
-    inline void forceYMinMax(double yMin_, double yMax_)
-    {
-        double epsilon = 1.0e-10;
-        yMin = yMin_;
-        yMax = yMax_;
-        yRange = yMax-yMin;
-        yScale = (std::abs(yRange) > epsilon)? (drawH/yRange) : 1.0;
-        xAxisVisible = ((yMax>0) && (yMin<=0)) || ((yMax>=0) && (yMin<0));
-    }
-    // Plot
-    inline void plotSVG(const std::string& filename);
-    // Setting values
-    inline void setborder(bool border_) {border=border_;};
-    inline void setaxis(bool axis_) {axis=axis_;};
-    inline void setticks(bool ticks_) {ticks=ticks_;};
-    inline void setgrid(bool grid_) {grid=grid_;};
-    inline void setplotTitle(bool title_) {plotTitle=title_;};
-    inline void setnumXTicks(size_t nt) {numXTicks=nt;};
-    inline void settickMarkSize(double ts) {tickMarkSize=ts;};
-    inline void setplotPad(double pp) {plotPad=pp;};
-    inline void setbackColor(size_t R, size_t G, size_t B)
-    {
-        if ( (R<256) && (G<256) && (B<256) )
+        // Set in initiatioin
+        Vec<Plot2DData> plotData;
+        size_t width;
+        size_t height;
+        dVec   xVals;
+        dVec   yVals;
+        size_t padding;
+        double xMax;
+        double xMin;
+        double xRange;
+        double yMax;
+        double yMin;
+        double yRange;
+        double xScale;
+        double yScale;
+        // Actual Drawn width and height;
+        size_t drawW;
+        size_t drawH;
+        bool   xAxisVisible;
+        bool   yAxisVisible;
+        // Set inside `drawTicks` function
+        dVec xTickPixelsX;
+        dVec xTickPointsX;
+        dVec yTickPixelsY;
+        dVec yTickPointsY;
+        double gLeft;
+        double gRight;
+        double gBottom;
+        double gTop;
+        size_t numYTicks;
+        double xStep;
+        double yStep;
+        // Set manually
+        bool   border                        = true;
+        bool   axis                          = true;
+        bool   ticks                         = true;
+        bool   grid                          = true;
+        bool   axisLabel                     = true;
+        bool   autoTicks                     = true;
+        bool   plotTitle                     = false;
+        size_t numXTicks                     = 11;
+        double tickMarkSize                  = 6.0;
+        double plotPad                       = 4.0;
+        double borderLineWidth               = 1.5;
+        double axisLineWidth                 = 2.5;
+        double gridLineWidth                 = 0.5;
+        double plotNumeralsFontSize          = 15.0;
+        double plotAxisLabelFontSize         = 16.0;
+        double plotTitleFontSize             = 20.0;
+        double plotLineWidth                 = 1.0;
+        size_t plotNumeralsSignificantDigits = 3;
+        LineStyle plotLineStyle = LineStyle::Solid;
+        std::string xAxisLabel        = "X";
+        std::string yAxisLabel        = "Y";
+        std::string plotTitleText      = "Title!";
+        // ----- Colors ----- //
+        std::string backColor          = "#ffffff";
+        std::string borderLineColor    = "#000000";
+        std::string axisLineColor      = "#000000";
+        std::string gridLineColor      = "#101010";
+        std::string plotNumeralsColor  = "#000000";
+        std::string plotLineColor      = "#0000ff";
+        std::string plotAxisLabelColor = "#1f1f1f";
+        std::string plotTitleColor     = "#000000";
+        // Pont -> Pixel & Pixel -> Point
+        inline double toPixelX( const double x) const {return padding + (x-xMin)*xScale;};
+        inline double toPixelY( const double y) const {return (height-padding) - (y-yMin)*yScale;};
+        inline double toPointX( const double x) const {return (x-padding)/xScale + xMin;};
+        inline double toPointY( const double y) const {return yMin - (y-height+padding)/yScale;};
+        // Plot options
+        inline void drawTicks(std::ofstream& file);
+        inline void drawGrid(std::ofstream& file);
+        inline void writeNumbers(std::ofstream& file);
+        inline void writeAxisLabels(std::ofstream& file);
+        inline void writeplotTitle(std::ofstream& file);
+        inline double calcAutoXTicksStep()
         {
-            backColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
-                +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
-                +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
-        }
-        else
+            double rawStep  = xRange / (numXTicks - 1);
+            double exponent = std::floor(std::log10(rawStep));
+            double fraction = rawStep / std::pow(10.0,exponent);
+            double cleanFraction = 1.0;
+            if (fraction<1.5) cleanFraction = 1.0;
+            else if (fraction<2.25) cleanFraction = 2.0;
+            else if (fraction<3.75) cleanFraction = 2.5;
+            else if (fraction<7.5) cleanFraction = 5.0;
+            else cleanFraction = 10.0;
+            return cleanFraction*std::pow(10.0,exponent);
+        };
+        inline double calcAutoYTicksStep()
         {
-            std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to white background...";
-        }
-    };
-    inline void setborderLineWidth(double blw) {borderLineWidth=blw;};
-    inline void setborderLineColor(size_t R, size_t G, size_t B)
-    {
-        if ( (R<256) && (G<256) && (B<256) )
+            double rawStep  = yRange / (numYTicks - 1);
+            double exponent = std::floor(std::log10(rawStep));
+            double fraction = rawStep / std::pow(10.0,exponent);
+            double cleanFraction = 1.0;
+            if (fraction<1.5) cleanFraction = 1.0;
+            else if (fraction<2.25) cleanFraction = 2.0;
+            else if (fraction<3.75) cleanFraction = 2.5;
+            else if (fraction<7.5) cleanFraction = 5.0;
+            else cleanFraction = 10.0;
+            return cleanFraction*std::pow(10.0,exponent);
+        };
+    public:
+        Plot2D(const Vec<Plot2DData> data, size_t w = 1000, size_t h = 1000, size_t pad = 100)
         {
-            borderLineColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
-                +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
-                +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
-        }
-        else
+            if ( data.empty() )
+            {
+                throw std::runtime_error("The data is empty! You must provide at least one set of data.");
+            }
+            plotData = data;
+            width = w;
+            height = h;
+            padding = pad;
+            xMin = *std::min_element(plotData[0].xs.begin(),plotData[0].xs.end());
+            xMax = *std::max_element(plotData[0].xs.begin(),plotData[0].xs.end());
+            yMin = *std::min_element(plotData[0].ys.begin(),plotData[0].ys.end());
+            yMax = *std::max_element(plotData[0].ys.begin(),plotData[0].ys.end());
+            for ( const auto pd : plotData )
+            {
+                if ( (pd.xs.size() != pd.ys.size()) || (pd.xs.empty()) || (pd.ys.empty()) ) continue;
+                double localXMin = *std::min_element(pd.xs.begin(),pd.xs.end());
+                double localXMax = *std::max_element(pd.xs.begin(),pd.xs.end());
+                double localYMin = *std::min_element(pd.ys.begin(),pd.ys.end());
+                double localYMax = *std::max_element(pd.ys.begin(),pd.ys.end());
+                if ( localXMin<xMin )
+                {
+                    xMin = localXMin;
+                }
+                if ( localXMax>xMax )
+                {
+                    xMax = localXMax;
+                }
+                if ( localYMin<yMin )
+                {
+                    yMin = localYMin;
+                }
+                if ( localYMax>yMax )
+                {
+                    yMax = localYMax;
+                }
+            }
+            xRange = xMax - xMin;
+            yRange = yMax - yMin;
+            if ( xRange<2.0*epsilon )
+            {
+                xMin -= epsilon;
+                xMax += epsilon;
+                xRange = xMax-xMin;
+            }
+            if ( yRange<2.0*epsilon )
+            {
+                yMin -= epsilon;
+                yMax += epsilon;
+                yRange = yMax-yMin;
+            }
+            // Actual Drawn width and height;
+            drawW = width - (padding*2);
+            drawH = height - (padding*2);
+            // Calculating Scalings;
+            xScale = (std::abs(xRange) > epsilon)? (drawW/xRange) : 1.0;
+            yScale = (std::abs(yRange) > epsilon)? (drawH/yRange) : 1.0;
+            xAxisVisible = ((yMax>0) && (yMin<=0)) || ((yMax>=0) && (yMin<0));
+            yAxisVisible = ((xMax>0) && (xMin<=0)) || ((xMax>=0) && (xMin<0));
+        };
+        Plot2D(const dVec& xs, const dVec& ys, size_t w = 1000, size_t h = 1000, size_t pad = 100)
+        : width(w), height(h), xVals(xs), yVals(ys), padding(pad)
         {
-            std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to black borders...";
-        }
-    };
-    inline void setaxisLineWidth(double alw) {axisLineWidth=alw;};
-    inline void setaxisLineColor(size_t R, size_t G, size_t B)
-    {
-        if ( (R<256) && (G<256) && (B<256) )
+            // Simple Safety Checks!
+            if ( xVals.empty() )
+                throw std::runtime_error("Empty data! Cannot plot empty dataset!");
+            if ( xVals.size() != yVals.size() )
+                throw std::runtime_error("Dimensional mismatch! 'x' and 'y' must have the same dimensions!");
+            if ( (2*padding>=width) || (2*padding>=height) )
+                throw std::runtime_error("Padding is two large! It exceeds the height or width parameters.");
+            // Finding Data Ranges
+            xMax = *std::max_element(xVals.begin(), xVals.end());
+            xMin = *std::min_element(xVals.begin(), xVals.end());
+            yMax = *std::max_element(yVals.begin(), yVals.end());
+            yMin = *std::min_element(yVals.begin(), yVals.end());
+            xRange = xMax - xMin;
+            yRange = yMax - yMin;
+            if ( xRange<2.0e-10 )
+            {
+                xMin -= 1.0e-10;
+                xMax += 1.0e-10;
+                xRange = xMax-xMin;
+            }
+            if ( yRange<2.0e-10 )
+            {
+                yMin -= 1.0e-10;
+                yMax += 1.0e-10;
+                yRange = yMax-yMin;
+            }
+            // Actual Drawn width and height;
+            drawW = width - (padding*2);
+            drawH = height - (padding*2);
+            // Calculating Scalings;
+            double epsilon = 1e-10;
+            xScale = (std::abs(xRange) > epsilon)? (drawW/xRange) : 1.0;
+            yScale = (std::abs(yRange) > epsilon)? (drawH/yRange) : 1.0;
+            xAxisVisible = ((yMax>0) && (yMin<=0)) || ((yMax>=0) && (yMin<0));
+            yAxisVisible = ((xMax>0) && (xMin<=0)) || ((xMax>=0) && (xMin<0));
+        };
+        ~Plot2D(){};
+        inline void forceXMinMax(double xMin_, double xMax_)
         {
-            axisLineColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
-                +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
-                +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
+            double epsilon = 1.0e-10;
+            xMin = xMin_;
+            xMax = xMax_;
+            xRange = xMax-xMin;
+            xScale = (std::abs(xRange) > epsilon)? (drawW/xRange) : 1.0;
+            yAxisVisible = ((xMax>0) && (xMin<=0)) || ((xMax>=0) && (xMin<0));
         }
-        else
+        // Plot
+        inline void forceYMinMax(double yMin_, double yMax_)
         {
-            std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to black axes lines...";
+            double epsilon = 1.0e-10;
+            yMin = yMin_;
+            yMax = yMax_;
+            yRange = yMax-yMin;
+            yScale = (std::abs(yRange) > epsilon)? (drawH/yRange) : 1.0;
+            xAxisVisible = ((yMax>0) && (yMin<=0)) || ((yMax>=0) && (yMin<0));
         }
-    };
-    inline void setgridLineWidth(double glw) {gridLineWidth=glw;};
-    inline void setgridLineColor(size_t R, size_t G, size_t B)
-    {
-        if ( (R<256) && (G<256) && (B<256) )
+        // Plot
+        inline void plotSVG(const std::string& filename);
+        // Setting values
+        inline void setborder(bool border_) {border=border_;};
+        inline void setaxis(bool axis_) {axis=axis_;};
+        inline void setticks(bool ticks_) {ticks=ticks_;};
+        inline void setgrid(bool grid_) {grid=grid_;};
+        inline void setplotTitle(bool title_) {plotTitle=title_;};
+        inline void setnumXTicks(size_t nt) {numXTicks=nt;};
+        inline void settickMarkSize(double ts) {tickMarkSize=ts;};
+        inline void setplotPad(double pp) {plotPad=pp;};
+        inline void setbackColor(size_t R, size_t G, size_t B)
         {
-            gridLineColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
-                +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
-                +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
-        }
-        else
+            if ( (R<256) && (G<256) && (B<256) )
+            {
+                backColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
+                    +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
+                    +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
+            }
+            else
+            {
+                std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to white background...";
+            }
+        };
+        inline void setborderLineWidth(double blw) {borderLineWidth=blw;};
+        inline void setborderLineColor(size_t R, size_t G, size_t B)
         {
-            std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to gray grid lines...";
-        }
-    };
-    inline void setplotNumeralsFontSize(double pnfs) {plotNumeralsFontSize=pnfs;};
-    inline void setplotNumeralsColor(size_t R, size_t G, size_t B)
-    {
-        if ( (R<256) && (G<256) && (B<256) )
+            if ( (R<256) && (G<256) && (B<256) )
+            {
+                borderLineColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
+                    +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
+                    +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
+            }
+            else
+            {
+                std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to black borders...";
+            }
+        };
+        inline void setaxisLineWidth(double alw) {axisLineWidth=alw;};
+        inline void setaxisLineColor(size_t R, size_t G, size_t B)
         {
-            plotNumeralsColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
-                +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
-                +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
-        }
-        else
+            if ( (R<256) && (G<256) && (B<256) )
+            {
+                axisLineColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
+                    +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
+                    +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
+            }
+            else
+            {
+                std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to black axes lines...";
+            }
+        };
+        inline void setgridLineWidth(double glw) {gridLineWidth=glw;};
+        inline void setgridLineColor(size_t R, size_t G, size_t B)
         {
-            std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to black numerals...";
-        }
-    };
-    inline void setplotLineWidth(double plw) {plotLineWidth=plw;};
-    inline void setplotLineColor(size_t R, size_t G, size_t B)
-    {
-        if ( (R<256) && (G<256) && (B<256) )
+            if ( (R<256) && (G<256) && (B<256) )
+            {
+                gridLineColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
+                    +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
+                    +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
+            }
+            else
+            {
+                std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to gray grid lines...";
+            }
+        };
+        inline void setplotNumeralsFontSize(double pnfs) {plotNumeralsFontSize=pnfs;};
+        inline void setplotNumeralsColor(size_t R, size_t G, size_t B)
         {
-            plotLineColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
-                +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
-                +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
-        }
-        else
+            if ( (R<256) && (G<256) && (B<256) )
+            {
+                plotNumeralsColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
+                    +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
+                    +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
+            }
+            else
+            {
+                std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to black numerals...";
+            }
+        };
+        inline void setplotLineWidth(double plw) {plotLineWidth=plw;};
+        inline void setplotLineColor(size_t R, size_t G, size_t B)
         {
-            std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to blue plot lines...";
-        }
-    };
-    inline void setplotNumeralsSignificantDigits(size_t pnsd) {plotNumeralsSignificantDigits=pnsd;};
-    inline void setaxisLabel(bool al) {axisLabel=al;};
-    inline void setxAxisLabel(std::string xal) {xAxisLabel=xal;};
-    inline void setyAxisLabel(std::string yal) {yAxisLabel=yal;};
-    inline void setplotAxisLabelFontSize(double palfs) {plotAxisLabelFontSize=palfs;};
-    inline void setplotAxisLabelColor(size_t R, size_t G, size_t B)
-    {
-        if ( (R<256) && (G<256) && (B<256) )
+            if ( (R<256) && (G<256) && (B<256) )
+            {
+                plotLineColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
+                    +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
+                    +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
+            }
+            else
+            {
+                std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to blue plot lines...";
+            }
+        };
+        inline void setplotNumeralsSignificantDigits(size_t pnsd) {plotNumeralsSignificantDigits=pnsd;};
+        inline void setaxisLabel(bool al) {axisLabel=al;};
+        inline void setxAxisLabel(std::string xal) {xAxisLabel=xal;};
+        inline void setyAxisLabel(std::string yal) {yAxisLabel=yal;};
+        inline void setplotAxisLabelFontSize(double palfs) {plotAxisLabelFontSize=palfs;};
+        inline void setplotAxisLabelColor(size_t R, size_t G, size_t B)
         {
-            plotAxisLabelColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
-                +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
-                +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
-        }
-        else
+            if ( (R<256) && (G<256) && (B<256) )
+            {
+                plotAxisLabelColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
+                    +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
+                    +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
+            }
+            else
+            {
+                std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to dark gray plot axis labels...";
+            }
+        };
+        inline void setplotTitleFontSize(double ptfs) {plotTitleFontSize=ptfs;};
+        inline void setplotTitleColor(size_t R, size_t G, size_t B)
         {
-            std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to dark gray plot axis labels...";
-        }
-    };
-    inline void setplotTitleFontSize(double ptfs) {plotTitleFontSize=ptfs;};
-    inline void setplotTitleColor(size_t R, size_t G, size_t B)
-    {
-        if ( (R<256) && (G<256) && (B<256) )
-        {
-            plotTitleColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
-                +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
-                +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
-        }
-        else
-        {
-            std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to black plot title...";
-        }
-    };
-    inline void setautoTicks(bool at) {autoTicks=at;};
-    inline void setplotLineStyle(LineStyle pls) {plotLineStyle=pls;};
-    inline void setplotTitleText(std::string titletext) {plotTitleText=titletext;};
+            if ( (R<256) && (G<256) && (B<256) )
+            {
+                plotTitleColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
+                    +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
+                    +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
+            }
+            else
+            {
+                std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to black plot title...";
+            }
+        };
+        inline void setautoTicks(bool at) {autoTicks=at;};
+        inline void setplotLineStyle(LineStyle pls) {plotLineStyle=pls;};
+        inline void setplotTitleText(std::string titletext) {plotTitleText=titletext;};
 };
 
 inline void Plot2D::drawTicks(std::ofstream& file)
@@ -707,68 +782,283 @@ inline void Plot2D::plotSVG(const std::string& filename)
     {
         Plot2D::writeplotTitle(file);
     }
-    // The data points.
-    std::string dashArrayAttr = "";
-    switch (plotLineStyle)
+    if ( xVals.empty() )
     {
-        case LineStyle::Dashed:
-            dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
-            break;
-        case LineStyle::Dotted:
-            dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
-            break;
-        case LineStyle::DashDot:
-            dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)
-                            +std::to_string(Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
-            break;
-        case LineStyle::Solid:
-        default:
-            dashArrayAttr = "";
-            break;
-
-    }
-    if (xVals.size()>=std::floor(Plot2D::drawW/(13*Plot2D::plotLineWidth)))
-    {
-        std::stringstream pathData;
-        pathData << "M " << Plot2D::toPixelX(xVals[0])
-            << " " << Plot2D::toPixelY(yVals[0]);
-        for ( size_t i=1; i<Plot2D::xVals.size(); ++i )
+        if ( plotData.empty() )
         {
-            pathData << "L " << Plot2D::toPixelX(xVals[i])
-                << " " << Plot2D::toPixelY(yVals[i]);
+            file << "</svg>\n";
+            file.close();
+            std::cout << "Plot did not get generated and empty plot compiled to: " << filename << '\n';
+            throw std::runtime_error("No data was provided!");
         }
-        file << " <path d=\"" << pathData.str() << "\" fill=\"none"
-            << "\" stroke=\"" << Plot2D::plotLineColor
-            << "\" stroke-width=\"" << Plot2D::plotLineWidth
-            << "\" stroke-linecap=\"round"
-            << "\" stroke-linejoin=\"round\""
-            << dashArrayAttr << " />\n";
+        else
+        {
+            for ( auto pd : plotData )
+            {
+                // The data points.
+                std::string dashArrayAttr = "";
+                switch (pd.lineStyle)
+                {
+                    case LineStyle::Dashed:
+                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
+                        break;
+                    case LineStyle::Dotted:
+                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
+                        break;
+                    case LineStyle::DashDot:
+                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)
+                                        +std::to_string(Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
+                        break;
+                    case LineStyle::Solid:
+                    default:
+                        dashArrayAttr = "";
+                        break;
+                }
+                if (pd.xs.size()>=std::floor(Plot2D::drawW/(13*pd.lineWidth)))
+                {
+                    std::stringstream pathData;
+                    pathData << "M " << Plot2D::toPixelX(pd.xs[0])
+                        << " " << Plot2D::toPixelY(pd.ys[0]);
+                    for ( size_t i=1; i<pd.xs.size(); ++i )
+                    {
+                        pathData << "L " << Plot2D::toPixelX(pd.xs[i])
+                            << " " << Plot2D::toPixelY(pd.ys[i]);
+                    }
+                    file << " <path d=\"" << pathData.str() << "\" fill=\"none"
+                        << "\" stroke=\"" << pd.lineColor
+                        << "\" stroke-width=\"" << pd.lineWidth
+                        << "\" stroke-linecap=\"round"
+                        << "\" stroke-linejoin=\"round\""
+                        << dashArrayAttr << " />\n";
+                }
+                else
+                {
+                    std::stringstream pathData;
+                    pathData << "M " << Plot2D::toPixelX(pd.xs[0])
+                        << " " << Plot2D::toPixelY(pd.ys[0]);
+                    for ( size_t i=0; i<pd.xs.size(); ++i )
+                    {
+                        double xp = Plot2D::toPixelX(pd.xs[i]);
+                        double yp = Plot2D::toPixelY(pd.ys[i]);
+                        file << " <circle cx=\"" << xp << "\" cy=\"" << yp
+                            << "\" r=\"" << 1.25*pd.lineWidth << "\" fill=\"" << pd.lineColor << "\" />\n";
+                        if ( i>0 )
+                        {
+                            pathData << "L " << Plot2D::toPixelX(pd.xs[i])
+                                << " " << Plot2D::toPixelY(pd.ys[i]);
+                        }
+                    }
+                    file << " <path d=\"" << pathData.str() << "\" fill=\"none"
+                        << "\" stroke=\"" << pd.lineColor
+                        << "\" stroke-width=\"" << pd.lineWidth
+                        << "\" stroke-linecap=\"round"
+                        << "\" stroke-linejoin=\"round\""
+                        << dashArrayAttr << " />\n";
+                }
+            }
+            file << "</svg>\n";
+            file.close();
+            std::cout << "Plot generated and compiled to: " << filename << '\n';
+        }
     }
     else
     {
-        std::stringstream pathData;
-        pathData << "M " << Plot2D::toPixelX(xVals[0])
-            << " " << Plot2D::toPixelY(yVals[0]);
-        for ( size_t i=0; i<Plot2D::xVals.size(); ++i )
+        if ( plotData.empty() )
         {
-            double xp = Plot2D::toPixelX(Plot2D::xVals[i]);
-            double yp = Plot2D::toPixelY(Plot2D::yVals[i]);
-            file << " <circle cx=\"" << xp << "\" cy=\"" << yp
-                << "\" r=\"" << 1.25*Plot2D::plotLineWidth << "\" fill=\"" << Plot2D::plotLineColor << "\" />\n";
-            if ( i>0 )
+            // The data points.
+            std::string dashArrayAttr = "";
+            switch (plotLineStyle)
             {
-                pathData << "L " << Plot2D::toPixelX(xVals[i])
-                    << " " << Plot2D::toPixelY(yVals[i]);
+                case LineStyle::Dashed:
+                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
+                    break;
+                case LineStyle::Dotted:
+                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
+                    break;
+                case LineStyle::DashDot:
+                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)
+                                    +std::to_string(Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
+                    break;
+                case LineStyle::Solid:
+                default:
+                    dashArrayAttr = "";
+                    break;
+
             }
+            if (xVals.size()>=std::floor(Plot2D::drawW/(13*Plot2D::plotLineWidth)))
+            {
+                std::stringstream pathData;
+                pathData << "M " << Plot2D::toPixelX(xVals[0])
+                    << " " << Plot2D::toPixelY(yVals[0]);
+                for ( size_t i=1; i<Plot2D::xVals.size(); ++i )
+                {
+                    pathData << "L " << Plot2D::toPixelX(xVals[i])
+                        << " " << Plot2D::toPixelY(yVals[i]);
+                }
+                file << " <path d=\"" << pathData.str() << "\" fill=\"none"
+                    << "\" stroke=\"" << Plot2D::plotLineColor
+                    << "\" stroke-width=\"" << Plot2D::plotLineWidth
+                    << "\" stroke-linecap=\"round"
+                    << "\" stroke-linejoin=\"round\""
+                    << dashArrayAttr << " />\n";
+            }
+            else
+            {
+                std::stringstream pathData;
+                pathData << "M " << Plot2D::toPixelX(xVals[0])
+                    << " " << Plot2D::toPixelY(yVals[0]);
+                for ( size_t i=0; i<Plot2D::xVals.size(); ++i )
+                {
+                    double xp = Plot2D::toPixelX(Plot2D::xVals[i]);
+                    double yp = Plot2D::toPixelY(Plot2D::yVals[i]);
+                    file << " <circle cx=\"" << xp << "\" cy=\"" << yp
+                        << "\" r=\"" << 1.25*Plot2D::plotLineWidth << "\" fill=\"" << Plot2D::plotLineColor << "\" />\n";
+                    if ( i>0 )
+                    {
+                        pathData << "L " << Plot2D::toPixelX(xVals[i])
+                            << " " << Plot2D::toPixelY(yVals[i]);
+                    }
+                }
+                file << " <path d=\"" << pathData.str() << "\" fill=\"none"
+                    << "\" stroke=\"" << Plot2D::plotLineColor
+                    << "\" stroke-width=\"" << Plot2D::plotLineWidth
+                    << "\" stroke-linecap=\"round"
+                    << "\" stroke-linejoin=\"round\""
+                    << dashArrayAttr << " />\n";
+            }
+            file << "</svg>\n";
+            file.close();
+            std::cout << "Plot generated and compiled to: " << filename << '\n';
         }
-        file << " <path d=\"" << pathData.str() << "\" fill=\"none"
-            << "\" stroke=\"" << Plot2D::plotLineColor
-            << "\" stroke-width=\"" << Plot2D::plotLineWidth
-            << "\" stroke-linecap=\"round"
-            << "\" stroke-linejoin=\"round\""
-            << dashArrayAttr << " />\n";
+        else
+        {
+            // The data points.
+            std::string dashArrayAttr = "";
+            switch (plotLineStyle)
+            {
+                case LineStyle::Dashed:
+                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
+                    break;
+                case LineStyle::Dotted:
+                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
+                    break;
+                case LineStyle::DashDot:
+                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)
+                                    +std::to_string(Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
+                    break;
+                case LineStyle::Solid:
+                default:
+                    dashArrayAttr = "";
+                    break;
+
+            }
+            if (xVals.size()>=std::floor(Plot2D::drawW/(13*Plot2D::plotLineWidth)))
+            {
+                std::stringstream pathData;
+                pathData << "M " << Plot2D::toPixelX(xVals[0])
+                    << " " << Plot2D::toPixelY(yVals[0]);
+                for ( size_t i=1; i<Plot2D::xVals.size(); ++i )
+                {
+                    pathData << "L " << Plot2D::toPixelX(xVals[i])
+                        << " " << Plot2D::toPixelY(yVals[i]);
+                }
+                file << " <path d=\"" << pathData.str() << "\" fill=\"none"
+                    << "\" stroke=\"" << Plot2D::plotLineColor
+                    << "\" stroke-width=\"" << Plot2D::plotLineWidth
+                    << "\" stroke-linecap=\"round"
+                    << "\" stroke-linejoin=\"round\""
+                    << dashArrayAttr << " />\n";
+            }
+            else
+            {
+                std::stringstream pathData;
+                pathData << "M " << Plot2D::toPixelX(xVals[0])
+                    << " " << Plot2D::toPixelY(yVals[0]);
+                for ( size_t i=0; i<Plot2D::xVals.size(); ++i )
+                {
+                    double xp = Plot2D::toPixelX(Plot2D::xVals[i]);
+                    double yp = Plot2D::toPixelY(Plot2D::yVals[i]);
+                    file << " <circle cx=\"" << xp << "\" cy=\"" << yp
+                        << "\" r=\"" << 1.25*Plot2D::plotLineWidth << "\" fill=\"" << Plot2D::plotLineColor << "\" />\n";
+                    if ( i>0 )
+                    {
+                        pathData << "L " << Plot2D::toPixelX(xVals[i])
+                            << " " << Plot2D::toPixelY(yVals[i]);
+                    }
+                }
+                file << " <path d=\"" << pathData.str() << "\" fill=\"none"
+                    << "\" stroke=\"" << Plot2D::plotLineColor
+                    << "\" stroke-width=\"" << Plot2D::plotLineWidth
+                    << "\" stroke-linecap=\"round"
+                    << "\" stroke-linejoin=\"round\""
+                    << dashArrayAttr << " />\n";
+            }
+            for ( auto pd : plotData )
+            {
+                // The data points.
+                std::string dashArrayAttr = "";
+                switch (pd.lineStyle)
+                {
+                    case LineStyle::Dashed:
+                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
+                        break;
+                    case LineStyle::Dotted:
+                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
+                        break;
+                    case LineStyle::DashDot:
+                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)
+                                        +std::to_string(Plot2D::plotLineWidth)+","+std::to_string(2.0*Plot2D::plotLineWidth)+"\"";
+                        break;
+                    case LineStyle::Solid:
+                    default:
+                        dashArrayAttr = "";
+                        break;
+                }
+                if (pd.xs.size()>=std::floor(Plot2D::drawW/(13*pd.lineWidth)))
+                {
+                    std::stringstream pathData;
+                    pathData << "M " << Plot2D::toPixelX(pd.xs[0])
+                        << " " << Plot2D::toPixelY(pd.ys[0]);
+                    for ( size_t i=1; i<pd.xs.size(); ++i )
+                    {
+                        pathData << "L " << Plot2D::toPixelX(pd.xs[i])
+                            << " " << Plot2D::toPixelY(pd.ys[i]);
+                    }
+                    file << " <path d=\"" << pathData.str() << "\" fill=\"none"
+                        << "\" stroke=\"" << pd.lineColor
+                        << "\" stroke-width=\"" << pd.lineWidth
+                        << "\" stroke-linecap=\"round"
+                        << "\" stroke-linejoin=\"round\""
+                        << dashArrayAttr << " />\n";
+                }
+                else
+                {
+                    std::stringstream pathData;
+                    pathData << "M " << Plot2D::toPixelX(pd.xs[0])
+                        << " " << Plot2D::toPixelY(pd.ys[0]);
+                    for ( size_t i=0; i<pd.xs.size(); ++i )
+                    {
+                        double xp = Plot2D::toPixelX(pd.xs[i]);
+                        double yp = Plot2D::toPixelY(pd.ys[i]);
+                        file << " <circle cx=\"" << xp << "\" cy=\"" << yp
+                            << "\" r=\"" << 1.25*pd.lineWidth << "\" fill=\"" << pd.lineColor << "\" />\n";
+                        if ( i>0 )
+                        {
+                            pathData << "L " << Plot2D::toPixelX(pd.xs[i])
+                                << " " << Plot2D::toPixelY(pd.ys[i]);
+                        }
+                    }
+                    file << " <path d=\"" << pathData.str() << "\" fill=\"none"
+                        << "\" stroke=\"" << pd.lineColor
+                        << "\" stroke-width=\"" << pd.lineWidth
+                        << "\" stroke-linecap=\"round"
+                        << "\" stroke-linejoin=\"round\""
+                        << dashArrayAttr << " />\n";
+                }
+            }
+            file << "</svg>\n";
+            file.close();
+            std::cout << "Plot generated and compiled to: " << filename << '\n';
+        }
     }
-    file << "</svg>\n";
-    file.close();
-    std::cout << "Plot generated and compiled to: " << filename << '\n';
 }

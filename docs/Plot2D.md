@@ -153,7 +153,7 @@ Functions that *set* a new value to a *parameter* or *flag*.
 15. **`void setplotNumeralsFontSize(double pnfs)`:** Set `plotNumeralsFontSize`.
 16. **`void setplotAxisLabelFontSize(double palfs)`:** Set `plotAxisLabelFontSize`.
 17. **`void setplotTitleFontSize(double ptfs)`:** Set `plotTitleFontSize`.
-18. **`void setbackColor(size_t R, size_t G, size_t B)`:** Set `backColor`. 
+18. **`void setbackColor(size_t R, size_t G, size_t B)`:** Set `backColor`.
 19. **`void setborderLineColor(size_t R, size_t G, size_t B)`:** Set `borderLineColor`.
 20. **`void setaxisLineColor(size_t R, size_t G, size_t B)`:** Set `axisLineColor`.
 21. **`void setgridLineColor(size_t R, size_t G, size_t B)`:** Set `gridLineColor`.
