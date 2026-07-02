@@ -31,8 +31,17 @@ class Plot2DData
         std::string lineColor;
         double lineWidth;
         double lineOpacity = 1.0;
-        Plot2DData(const dVec& x, const dVec& y, LineStyle ls, std::string lc, double lw, double op = 1.0)
-        : xs(x), ys(y), lineStyle(ls), lineColor(lc), lineWidth(lw), lineOpacity(op) {};
+        std::string lineLabel = "";
+        Plot2DData(const dVec& x, const dVec& y, LineStyle ls, std::string lc, double lw, double op = 1.0, std::string ll = "")
+        : xs(x), ys(y), lineStyle(ls), lineColor(lc), lineWidth(lw), lineOpacity(op), lineLabel(ll) {};
+};
+
+enum class LegendPos
+{
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight
 };
 
 class Plot2D
@@ -79,6 +88,7 @@ class Plot2D
         bool   axisLabel                     = true;
         bool   autoTicks                     = true;
         bool   plotTitle                     = false;
+        bool   plotLegend                    = false;
         size_t numXTicks                     = 11;
         double tickMarkSize                  = 6.0;
         double plotPad                       = 4.0;
@@ -91,10 +101,11 @@ class Plot2D
         double plotLineWidth                 = 1.0;
         size_t plotNumeralsSignificantDigits = 3;
         LineStyle plotLineStyle = LineStyle::Solid;
+        LegendPos legendPos = LegendPos::TopLeft;
         double plotLineOpacity = 1.0;
-        std::string xAxisLabel        = "X";
-        std::string yAxisLabel        = "Y";
-        std::string plotTitleText      = "Title!";
+        std::string xAxisLabel = "X";
+        std::string yAxisLabel = "Y";
+        std::string plotTitleText = "Title!";
         // ----- Colors ----- //
         std::string backColor          = "#ffffff";
         std::string borderLineColor    = "#000000";
@@ -104,6 +115,7 @@ class Plot2D
         std::string plotLineColor      = "#0000ff";
         std::string plotAxisLabelColor = "#1f1f1f";
         std::string plotTitleColor     = "#000000";
+        std::string plotLineLabel      = "";
         // Pont -> Pixel & Pixel -> Point
         inline double toPixelX( const double x) const {return padding + (x-xMin)*xScale;};
         inline double toPixelY( const double y) const {return (height-padding) - (y-yMin)*yScale;};
@@ -115,6 +127,7 @@ class Plot2D
         inline void writeNumbers(std::ofstream& file);
         inline void writeAxisLabels(std::ofstream& file);
         inline void writeplotTitle(std::ofstream& file);
+        inline void drawLegend(std::ofstream& file);
         inline double calcAutoXTicksStep()
         {
             double rawStep  = xRange / (numXTicks - 1);
@@ -243,14 +256,14 @@ class Plot2D
             yAxisVisible = ((xMax>0) && (xMin<=0)) || ((xMax>=0) && (xMin<0));
         };
         ~Plot2D(){};
-        inline void addData(const dVec& x, const dVec& y, LineStyle ls, std::string lc, double lw, double op = 1.0)
+        inline void addData(const dVec& x, const dVec& y, LineStyle ls, std::string lc, double lw, double op = 1.0, std::string ll = "")
         {
             // Simple Safety Checks!
             if ( x.empty() )
                 throw std::runtime_error("Empty data! Cannot plot empty dataset!");
             if ( x.size() != y.size() )
                 throw std::runtime_error("Dimensional mismatch! 'x' and 'y' must have the same dimensions!");
-            Plot2DData pd(x,y,ls,lc,lw,op);
+            Plot2DData pd(x,y,ls,lc,lw,op,ll);
             Plot2D::plotData.push_back(pd);
             double localXMin = *std::min_element(pd.xs.begin(),pd.xs.end());
             double localXMax = *std::max_element(pd.xs.begin(),pd.xs.end());
@@ -487,6 +500,9 @@ class Plot2D
         inline void setplotLineStyle(LineStyle pls) {plotLineStyle=pls;};
         inline void setplotTitleText(std::string titletext) {plotTitleText=titletext;};
         inline void setplotLineOpacity(double op) {plotLineOpacity=op;};
+        inline void setplotLegend(bool pl) {plotLegend=pl;};
+        inline void setplotLineLabel(std::string pll) {plotLineLabel=pll;};
+        inline void setlegendPos(LegendPos lp) {legendPos=lp;};
 };
 
 inline void Plot2D::drawTicks(std::ofstream& file)
@@ -804,6 +820,229 @@ inline void Plot2D::writeplotTitle(std::ofstream& file)
     file << " </g>\n";
 }
 
+inline void Plot2D::drawLegend(std::ofstream& file)
+{
+    double legendTopPad = 20.0;
+    double legendBottomPad = 20.0;
+    double legendLeftPad = 20.0;
+    double legendRightPad = 20.0;
+    double legendWidth = Plot2D::drawW/10.0 + 20.0;
+    double legendHeight = 0.0;
+    if (Plot2D::xVals.empty())
+    {
+        if (Plot2D::plotData.empty())
+        {
+            legendHeight = 220.0;
+        }
+        else
+        {
+            legendHeight = plotData.size()*Plot2D::plotAxisLabelFontSize + 20.0;
+        }
+    }
+    else
+    {
+        if (Plot2D::plotData.empty())
+        {
+            legendHeight = Plot2D::plotAxisLabelFontSize + 20.0;
+        }
+        else
+        {
+            legendHeight = (plotData.size()+1)*Plot2D::plotAxisLabelFontSize + 20.0;
+        }
+    }
+
+    double legendX = 0.0;
+    double legendY = 0.0;
+    switch ( Plot2D::legendPos )
+    {
+        case LegendPos::TopLeft:
+            legendX = Plot2D::gLeft+legendLeftPad;
+            legendY = Plot2D::gTop+legendTopPad;
+            break;
+        case LegendPos::TopRight:
+            legendX = Plot2D::gRight-legendRightPad-legendWidth;
+            legendY = Plot2D::gTop+legendTopPad;
+            break;
+        case LegendPos::BottomLeft:
+            legendX = Plot2D::gLeft+legendLeftPad;
+            legendY = Plot2D::gBottom-legendBottomPad-legendHeight;
+            break;
+        case LegendPos::BottomRight:
+            legendX = Plot2D::gRight-legendRightPad-legendWidth;
+            legendY = Plot2D::gBottom-legendBottomPad-legendHeight;
+            break;
+        default:
+            legendX = Plot2D::gLeft+legendLeftPad;
+            legendY = Plot2D::gTop+legendTopPad;
+            break;
+    }
+    double itemY = 0.0;
+    // Drawing the empty legend box
+    file << "   <rect x=\"" << legendX << "\" y=\"" << legendY
+        << "\" width=\"" << legendWidth << "\" height=\"" << legendHeight
+        << "\" fill=\"" << Plot2D::backColor << "\" fill-opacity=\"0.75\" stroke=\"" << Plot2D::borderLineColor
+        << "\" stroke-width=\"1\" rx=\"4\" />\n";
+    if ( Plot2D::xVals.empty() )
+    {
+        if (Plot2D::plotData.empty() )
+        {
+            std::cout << "Nothing to write in legend!";
+        }
+        else
+        {
+            size_t counter = 0;
+            std::string dashArrayAttr = "";
+            for ( auto pd : plotData )
+            {
+                itemY = legendY + counter*Plot2D::plotAxisLabelFontSize + 10.0;
+                switch (pd.lineStyle)
+                {
+                    case LineStyle::Dashed:
+                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)+"\"";
+                        break;
+                    case LineStyle::Dotted:
+                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)+"\"";
+                        break;
+                    case LineStyle::DashDot:
+                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)
+                                        +std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)+"\"";
+                        break;
+                    case LineStyle::Solid:
+                    default:
+                        dashArrayAttr = "";
+                        break;
+                }
+                file << " <line x1=\"" << legendX + 10.0 << "\" y1=\"" << itemY+Plot2D::plotAxisLabelFontSize/2.0
+                    << "\" x2=\"" << legendX + 60.0 << "\" y2=\"" << itemY+Plot2D::plotAxisLabelFontSize/2.0
+                    << "\" stroke=\"" << pd.lineColor
+                    << "\" stroke-opacity=\"" << pd.lineOpacity
+                    << "\" stroke-width=\"" << pd.lineWidth
+                    << "\" stroke-linecap=\"round"
+                    << "\" stroke-linejoin=\"round\""
+                    << dashArrayAttr << " />\n";
+                file << "   <text x=\"" << legendX+legendWidth/2.0+40.0 << "\" y=\"" << itemY+Plot2D::plotAxisLabelFontSize/2.0
+                    << "\" font-family=\"sans-serif\" font-size=\"" << Plot2D::plotAxisLabelFontSize/2.0
+                    << "\" fill=\"" << pd.lineColor
+                    << "\" text-anchor=\"middle\" dominant-baseline=\"central\">"
+                    << pd.lineLabel << "</text>\n";
+                counter += 1;
+            }
+        }
+    }
+    else
+    {
+        if (Plot2D::plotData.empty())
+        {
+            std::string dashArrayAttr = "";
+            itemY = legendY + 10.0;
+            switch (Plot2D::plotLineStyle)
+            {
+                case LineStyle::Dashed:
+                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)+"\"";
+                    break;
+                case LineStyle::Dotted:
+                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)+"\"";
+                    break;
+                case LineStyle::DashDot:
+                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)
+                                    +std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)+"\"";
+                    break;
+                case LineStyle::Solid:
+                default:
+                    dashArrayAttr = "";
+                    break;
+            }
+            file << " <line x1=\"" << legendX + 10.0 << "\" y1=\"" << itemY+Plot2D::plotAxisLabelFontSize/2.0
+                << "\" x2=\"" << legendX + 60.0 << "\" y2=\"" << itemY+Plot2D::plotAxisLabelFontSize/2.0
+                << "\" stroke=\"" << Plot2D::plotLineColor
+                << "\" stroke-opacity=\"" << Plot2D::plotLineOpacity
+                << "\" stroke-width=\"" << Plot2D::plotLineWidth
+                << "\" stroke-linecap=\"round"
+                << "\" stroke-linejoin=\"round\""
+                << dashArrayAttr << " />\n";
+            file << "   <text x=\"" << legendX+legendWidth/2.0+40.0 << "\" y=\"" << itemY+Plot2D::plotAxisLabelFontSize/2.0
+                << "\" font-family=\"sans-serif\" font-size=\"" << Plot2D::plotAxisLabelFontSize/2.0
+                << "\" fill=\"" << Plot2D::plotLineColor
+                << "\" text-anchor=\"middle\" dominant-baseline=\"central\">"
+                << Plot2D::plotLineLabel << "</text>\n";
+        }
+        else
+        {
+            size_t counter = 0;
+            std::string dashArrayAttr = "";
+            // writing original data
+            itemY = legendY + 10.0;
+            switch (Plot2D::plotLineStyle)
+            {
+                case LineStyle::Dashed:
+                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)+"\"";
+                    break;
+                case LineStyle::Dotted:
+                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)+"\"";
+                    break;
+                case LineStyle::DashDot:
+                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)
+                                    +std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)+"\"";
+                    break;
+                case LineStyle::Solid:
+                default:
+                    dashArrayAttr = "";
+                    break;
+            }
+            file << " <line x1=\"" << legendX + 10.0 << "\" y1=\"" << itemY+Plot2D::plotAxisLabelFontSize/2.0
+                << "\" x2=\"" << legendX + 60.0 << "\" y2=\"" << itemY+Plot2D::plotAxisLabelFontSize/2.0
+                << "\" stroke=\"" << Plot2D::plotLineColor
+                << "\" stroke-opacity=\"" << Plot2D::plotLineOpacity
+                << "\" stroke-width=\"" << Plot2D::plotLineWidth
+                << "\" stroke-linecap=\"round"
+                << "\" stroke-linejoin=\"round\""
+                << dashArrayAttr << " />\n";
+            file << "   <text x=\"" << legendX+legendWidth/2.0+40.0 << "\" y=\"" << itemY+Plot2D::plotAxisLabelFontSize/2.0
+                << "\" font-family=\"sans-serif\" font-size=\"" << Plot2D::plotAxisLabelFontSize/2.0
+                << "\" fill=\"" << Plot2D::plotLineColor
+                << "\" text-anchor=\"middle\" dominant-baseline=\"central\">"
+                << Plot2D::plotLineLabel << "</text>\n";
+            counter += 1;
+            // writing added data
+            for ( auto pd : plotData )
+            {
+                itemY = legendY + counter*Plot2D::plotAxisLabelFontSize + 10.0;
+                switch (pd.lineStyle)
+                {
+                    case LineStyle::Dashed:
+                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(4.0*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)+"\"";
+                        break;
+                    case LineStyle::Dotted:
+                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)+"\"";
+                        break;
+                    case LineStyle::DashDot:
+                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)
+                                        +std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(1.0*Plot2D::plotLineWidth)+"\"";
+                        break;
+                    case LineStyle::Solid:
+                    default:
+                        dashArrayAttr = "";
+                        break;
+                }
+                file << " <line x1=\"" << legendX + 10.0 << "\" y1=\"" << itemY+Plot2D::plotAxisLabelFontSize/2.0
+                    << "\" x2=\"" << legendX + 60.0 << "\" y2=\"" << itemY+Plot2D::plotAxisLabelFontSize/2.0
+                    << "\" stroke=\"" << pd.lineColor
+                    << "\" stroke-opacity=\"" << pd.lineOpacity
+                    << "\" stroke-width=\"" << pd.lineWidth
+                    << "\" stroke-linecap=\"round"
+                    << "\" stroke-linejoin=\"round\""
+                    << dashArrayAttr << " />\n";
+                file << "   <text x=\"" << legendX+legendWidth/2.0+40.0 << "\" y=\"" << itemY+Plot2D::plotAxisLabelFontSize/2.0
+                    << "\" font-family=\"sans-serif\" font-size=\"" << Plot2D::plotAxisLabelFontSize/2.0
+                    << "\" fill=\"" << pd.lineColor
+                    << "\" text-anchor=\"middle\" dominant-baseline=\"central\">"
+                    << pd.lineLabel << "</text>\n";
+                counter += 1;
+            }
+        }
+    }
+}
+
 inline void Plot2D::plotSVG(const std::string& filename)
 {
     std::ofstream file(filename, std::ios::trunc);
@@ -957,8 +1196,6 @@ inline void Plot2D::plotSVG(const std::string& filename)
                         << dashArrayAttr << " />\n";
                 }
             }
-            file << "</svg>\n";
-            file.close();
             std::cout << "Plot generated and compiled to: " << filename << '\n';
         }
     }
@@ -1028,8 +1265,6 @@ inline void Plot2D::plotSVG(const std::string& filename)
                     << "\" stroke-linejoin=\"round\""
                     << dashArrayAttr << " />\n";
             }
-            file << "</svg>\n";
-            file.close();
             std::cout << "Plot generated and compiled to: " << filename << '\n';
         }
         else
@@ -1161,9 +1396,13 @@ inline void Plot2D::plotSVG(const std::string& filename)
                         << dashArrayAttr << " />\n";
                 }
             }
-            file << "</svg>\n";
-            file.close();
             std::cout << "Plot generated and compiled to: " << filename << '\n';
         }
     }
+    if (plotLegend)
+    {
+        drawLegend(file);
+    }
+    file << "</svg>\n";
+    file.close();
 }
