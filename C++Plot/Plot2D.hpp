@@ -30,8 +30,9 @@ class Plot2DData
         LineStyle lineStyle;
         std::string lineColor;
         double lineWidth;
-        Plot2DData(const dVec& x, const dVec& y, LineStyle ls, std::string lc, double lw)
-        : xs(x), ys(y), lineStyle(ls), lineColor(lc), lineWidth(lw) {};
+        double lineOpacity = 1.0;
+        Plot2DData(const dVec& x, const dVec& y, LineStyle ls, std::string lc, double lw, double op = 1.0)
+        : xs(x), ys(y), lineStyle(ls), lineColor(lc), lineWidth(lw), lineOpacity(op) {};
 };
 
 class Plot2D
@@ -90,6 +91,7 @@ class Plot2D
         double plotLineWidth                 = 1.0;
         size_t plotNumeralsSignificantDigits = 3;
         LineStyle plotLineStyle = LineStyle::Solid;
+        double plotLineOpacity = 1.0;
         std::string xAxisLabel        = "X";
         std::string yAxisLabel        = "Y";
         std::string plotTitleText      = "Title!";
@@ -241,14 +243,14 @@ class Plot2D
             yAxisVisible = ((xMax>0) && (xMin<=0)) || ((xMax>=0) && (xMin<0));
         };
         ~Plot2D(){};
-        inline void addData(const dVec& x, const dVec& y, LineStyle ls, std::string lc, double lw)
+        inline void addData(const dVec& x, const dVec& y, LineStyle ls, std::string lc, double lw, double op = 1.0)
         {
             // Simple Safety Checks!
             if ( x.empty() )
                 throw std::runtime_error("Empty data! Cannot plot empty dataset!");
             if ( x.size() != y.size() )
                 throw std::runtime_error("Dimensional mismatch! 'x' and 'y' must have the same dimensions!");
-            Plot2DData pd(x,y,ls,lc,lw);
+            Plot2DData pd(x,y,ls,lc,lw,op);
             Plot2D::plotData.push_back(pd);
             double localXMin = *std::min_element(pd.xs.begin(),pd.xs.end());
             double localXMax = *std::max_element(pd.xs.begin(),pd.xs.end());
@@ -484,6 +486,7 @@ class Plot2D
         inline void setautoTicks(bool at) {autoTicks=at;};
         inline void setplotLineStyle(LineStyle pls) {plotLineStyle=pls;};
         inline void setplotTitleText(std::string titletext) {plotTitleText=titletext;};
+        inline void setplotLineOpacity(double op) {plotLineOpacity=op;};
 };
 
 inline void Plot2D::drawTicks(std::ofstream& file)
@@ -922,6 +925,7 @@ inline void Plot2D::plotSVG(const std::string& filename)
                     }
                     file << " <path d=\"" << pathData.str() << "\" fill=\"none"
                         << "\" stroke=\"" << pd.lineColor
+                        << "\" stroke-opacity=\"" << pd.lineOpacity
                         << "\" stroke-width=\"" << pd.lineWidth
                         << "\" stroke-linecap=\"round"
                         << "\" stroke-linejoin=\"round\""
@@ -937,7 +941,7 @@ inline void Plot2D::plotSVG(const std::string& filename)
                         double xp = Plot2D::toPixelX(pd.xs[i]);
                         double yp = Plot2D::toPixelY(pd.ys[i]);
                         file << " <circle cx=\"" << xp << "\" cy=\"" << yp
-                            << "\" r=\"" << 1.25*pd.lineWidth << "\" fill=\"" << pd.lineColor << "\" />\n";
+                            << "\" r=\"" << 1.25*pd.lineWidth << "\" fill=\"" << pd.lineColor << "\" fill-opacity=\"" << pd.lineOpacity << "\" />\n";
                         if ( i>0 )
                         {
                             pathData << "L " << Plot2D::toPixelX(pd.xs[i])
@@ -946,6 +950,7 @@ inline void Plot2D::plotSVG(const std::string& filename)
                     }
                     file << " <path d=\"" << pathData.str() << "\" fill=\"none"
                         << "\" stroke=\"" << pd.lineColor
+                        << "\" stroke-opacity=\"" << pd.lineOpacity
                         << "\" stroke-width=\"" << pd.lineWidth
                         << "\" stroke-linecap=\"round"
                         << "\" stroke-linejoin=\"round\""
@@ -992,6 +997,7 @@ inline void Plot2D::plotSVG(const std::string& filename)
                 }
                 file << " <path d=\"" << pathData.str() << "\" fill=\"none"
                     << "\" stroke=\"" << Plot2D::plotLineColor
+                    << "\" stroke-opacity=\"" << Plot2D::plotLineOpacity
                     << "\" stroke-width=\"" << Plot2D::plotLineWidth
                     << "\" stroke-linecap=\"round"
                     << "\" stroke-linejoin=\"round\""
@@ -1007,7 +1013,7 @@ inline void Plot2D::plotSVG(const std::string& filename)
                     double xp = Plot2D::toPixelX(Plot2D::xVals[i]);
                     double yp = Plot2D::toPixelY(Plot2D::yVals[i]);
                     file << " <circle cx=\"" << xp << "\" cy=\"" << yp
-                        << "\" r=\"" << 1.25*Plot2D::plotLineWidth << "\" fill=\"" << Plot2D::plotLineColor << "\" />\n";
+                        << "\" r=\"" << 1.25*Plot2D::plotLineWidth << "\" fill=\"" << Plot2D::plotLineColor << "\" fill-opacity=\"" << Plot2D::plotLineOpacity << "\" />\n";
                     if ( i>0 )
                     {
                         pathData << "L " << Plot2D::toPixelX(xVals[i])
@@ -1016,6 +1022,7 @@ inline void Plot2D::plotSVG(const std::string& filename)
                 }
                 file << " <path d=\"" << pathData.str() << "\" fill=\"none"
                     << "\" stroke=\"" << Plot2D::plotLineColor
+                    << "\" stroke-opacity=\"" << Plot2D::plotLineOpacity
                     << "\" stroke-width=\"" << Plot2D::plotLineWidth
                     << "\" stroke-linecap=\"round"
                     << "\" stroke-linejoin=\"round\""
@@ -1058,6 +1065,7 @@ inline void Plot2D::plotSVG(const std::string& filename)
                 }
                 file << " <path d=\"" << pathData.str() << "\" fill=\"none"
                     << "\" stroke=\"" << Plot2D::plotLineColor
+                    << "\" stroke-opacity=\"" << Plot2D::plotLineOpacity
                     << "\" stroke-width=\"" << Plot2D::plotLineWidth
                     << "\" stroke-linecap=\"round"
                     << "\" stroke-linejoin=\"round\""
@@ -1073,7 +1081,7 @@ inline void Plot2D::plotSVG(const std::string& filename)
                     double xp = Plot2D::toPixelX(Plot2D::xVals[i]);
                     double yp = Plot2D::toPixelY(Plot2D::yVals[i]);
                     file << " <circle cx=\"" << xp << "\" cy=\"" << yp
-                        << "\" r=\"" << 1.25*Plot2D::plotLineWidth << "\" fill=\"" << Plot2D::plotLineColor << "\" />\n";
+                        << "\" r=\"" << 1.25*Plot2D::plotLineWidth << "\" fill=\"" << Plot2D::plotLineColor << "\" fill-opacity=\"" << Plot2D::plotLineOpacity << "\" />\n";
                     if ( i>0 )
                     {
                         pathData << "L " << Plot2D::toPixelX(xVals[i])
@@ -1082,6 +1090,7 @@ inline void Plot2D::plotSVG(const std::string& filename)
                 }
                 file << " <path d=\"" << pathData.str() << "\" fill=\"none"
                     << "\" stroke=\"" << Plot2D::plotLineColor
+                    << "\" stroke-opacity=\"" << Plot2D::plotLineOpacity
                     << "\" stroke-width=\"" << Plot2D::plotLineWidth
                     << "\" stroke-linecap=\"round"
                     << "\" stroke-linejoin=\"round\""
@@ -1120,6 +1129,7 @@ inline void Plot2D::plotSVG(const std::string& filename)
                     }
                     file << " <path d=\"" << pathData.str() << "\" fill=\"none"
                         << "\" stroke=\"" << pd.lineColor
+                        << "\" stroke-opacity=\"" << pd.lineOpacity
                         << "\" stroke-width=\"" << pd.lineWidth
                         << "\" stroke-linecap=\"round"
                         << "\" stroke-linejoin=\"round\""
@@ -1135,7 +1145,7 @@ inline void Plot2D::plotSVG(const std::string& filename)
                         double xp = Plot2D::toPixelX(pd.xs[i]);
                         double yp = Plot2D::toPixelY(pd.ys[i]);
                         file << " <circle cx=\"" << xp << "\" cy=\"" << yp
-                            << "\" r=\"" << 1.25*pd.lineWidth << "\" fill=\"" << pd.lineColor << "\" />\n";
+                            << "\" r=\"" << 1.25*pd.lineWidth << "\" fill=\"" << pd.lineColor << "\" fill-opacity=\"" << pd.lineOpacity << "\" />\n";
                         if ( i>0 )
                         {
                             pathData << "L " << Plot2D::toPixelX(pd.xs[i])
@@ -1144,6 +1154,7 @@ inline void Plot2D::plotSVG(const std::string& filename)
                     }
                     file << " <path d=\"" << pathData.str() << "\" fill=\"none"
                         << "\" stroke=\"" << pd.lineColor
+                        << "\" stroke-opacity=\"" << pd.lineOpacity
                         << "\" stroke-width=\"" << pd.lineWidth
                         << "\" stroke-linecap=\"round"
                         << "\" stroke-linejoin=\"round\""

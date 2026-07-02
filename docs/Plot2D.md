@@ -228,6 +228,8 @@ Some extra elements added to the `Plot2D` class for better control over plots.
 1. **`Vec<Plot2DData> plotData`:** This is an array of a class `Plot2DData` which contains data for a plot (the $x$ values, $y$ values, the `LineStyle`, the line color, the line width).
 2. **`void addData(const dVec& x, const dVec& y, LineStyle ls, std::string lc, double lw)`:** Add one set of $x$ and $y$ arrays to the plot.
 3. **`void addMultipleData(const Vec<Plot2DData>& plotdata)`:** This one adds multiple sets of $x$ and $y$ array to plot.
+4. **`double plotLineOpacity`:** To be able to set how opaque a line is. Default is `1.0` (fully opaque).
+5. **`void setplotLineOpacity(double op)`:** Set the *opacity* of the plotted line.
 
 ## Other Classes
 
