@@ -180,68 +180,68 @@
  <line x1="145" y1="150" x2="1855" y2="150" stroke="#3f003f" stroke-width="0.5" stroke-linecap="round" />
  
  <g font-family="sans-serif" font-size="15" fill="#7f5f5f">
-   <text x="150" y="2180" text-anchor="middle" dominant-baseline="hanging">-5</text>
-   <text x="235" y="2180" text-anchor="middle" dominant-baseline="hanging">-4.5</text>
-   <text x="320" y="2180" text-anchor="middle" dominant-baseline="hanging">-4</text>
-   <text x="405" y="2180" text-anchor="middle" dominant-baseline="hanging">-3.5</text>
-   <text x="490" y="2180" text-anchor="middle" dominant-baseline="hanging">-3</text>
-   <text x="575" y="2180" text-anchor="middle" dominant-baseline="hanging">-2.5</text>
-   <text x="660" y="2180" text-anchor="middle" dominant-baseline="hanging">-2</text>
-   <text x="745" y="2180" text-anchor="middle" dominant-baseline="hanging">-1.5</text>
-   <text x="830" y="2180" text-anchor="middle" dominant-baseline="hanging">-1</text>
-   <text x="915" y="2180" text-anchor="middle" dominant-baseline="hanging">-0.5</text>
-   <text x="1000" y="2180" text-anchor="middle" dominant-baseline="hanging">0</text>
-   <text x="1085" y="2180" text-anchor="middle" dominant-baseline="hanging">0.5</text>
-   <text x="1170" y="2180" text-anchor="middle" dominant-baseline="hanging">1</text>
-   <text x="1255" y="2180" text-anchor="middle" dominant-baseline="hanging">1.5</text>
-   <text x="1340" y="2180" text-anchor="middle" dominant-baseline="hanging">2</text>
-   <text x="1425" y="2180" text-anchor="middle" dominant-baseline="hanging">2.5</text>
-   <text x="1510" y="2180" text-anchor="middle" dominant-baseline="hanging">3</text>
-   <text x="1595" y="2180" text-anchor="middle" dominant-baseline="hanging">3.5</text>
-   <text x="1680" y="2180" text-anchor="middle" dominant-baseline="hanging">4</text>
-   <text x="1765" y="2180" text-anchor="middle" dominant-baseline="hanging">4.5</text>
-   <text x="1850" y="2180" text-anchor="middle" dominant-baseline="hanging">5</text>
-   <text x="120" y="2150" text-anchor="end" dominant-baseline="central">-1</text>
-   <text x="120" y="2091.18" text-anchor="end" dominant-baseline="central">-0.75</text>
-   <text x="120" y="2032.35" text-anchor="end" dominant-baseline="central">-0.5</text>
-   <text x="120" y="1973.53" text-anchor="end" dominant-baseline="central">-0.25</text>
-   <text x="120" y="1914.71" text-anchor="end" dominant-baseline="central">0</text>
-   <text x="120" y="1855.88" text-anchor="end" dominant-baseline="central">0.25</text>
-   <text x="120" y="1797.06" text-anchor="end" dominant-baseline="central">0.5</text>
-   <text x="120" y="1738.24" text-anchor="end" dominant-baseline="central">0.75</text>
-   <text x="120" y="1679.41" text-anchor="end" dominant-baseline="central">1</text>
-   <text x="120" y="1620.59" text-anchor="end" dominant-baseline="central">1.25</text>
-   <text x="120" y="1561.76" text-anchor="end" dominant-baseline="central">1.5</text>
-   <text x="120" y="1502.94" text-anchor="end" dominant-baseline="central">1.75</text>
-   <text x="120" y="1444.12" text-anchor="end" dominant-baseline="central">2</text>
-   <text x="120" y="1385.29" text-anchor="end" dominant-baseline="central">2.25</text>
-   <text x="120" y="1326.47" text-anchor="end" dominant-baseline="central">2.5</text>
-   <text x="120" y="1267.65" text-anchor="end" dominant-baseline="central">2.75</text>
-   <text x="120" y="1208.82" text-anchor="end" dominant-baseline="central">3</text>
-   <text x="120" y="1150" text-anchor="end" dominant-baseline="central">3.25</text>
-   <text x="120" y="1091.18" text-anchor="end" dominant-baseline="central">3.5</text>
-   <text x="120" y="1032.35" text-anchor="end" dominant-baseline="central">3.75</text>
-   <text x="120" y="973.529" text-anchor="end" dominant-baseline="central">4</text>
-   <text x="120" y="914.706" text-anchor="end" dominant-baseline="central">4.25</text>
-   <text x="120" y="855.882" text-anchor="end" dominant-baseline="central">4.5</text>
-   <text x="120" y="797.059" text-anchor="end" dominant-baseline="central">4.75</text>
-   <text x="120" y="738.235" text-anchor="end" dominant-baseline="central">5</text>
-   <text x="120" y="679.412" text-anchor="end" dominant-baseline="central">5.25</text>
-   <text x="120" y="620.588" text-anchor="end" dominant-baseline="central">5.5</text>
-   <text x="120" y="561.765" text-anchor="end" dominant-baseline="central">5.75</text>
-   <text x="120" y="502.941" text-anchor="end" dominant-baseline="central">6</text>
-   <text x="120" y="444.118" text-anchor="end" dominant-baseline="central">6.25</text>
-   <text x="120" y="385.294" text-anchor="end" dominant-baseline="central">6.5</text>
-   <text x="120" y="326.471" text-anchor="end" dominant-baseline="central">6.75</text>
-   <text x="120" y="267.647" text-anchor="end" dominant-baseline="central">7</text>
-   <text x="120" y="208.824" text-anchor="end" dominant-baseline="central">7.25</text>
-   <text x="120" y="150" text-anchor="end" dominant-baseline="central">7.5</text>
+   <text x="150" y="2185" text-anchor="middle" dominant-baseline="hanging">-5</text>
+   <text x="235" y="2185" text-anchor="middle" dominant-baseline="hanging">-4.5</text>
+   <text x="320" y="2185" text-anchor="middle" dominant-baseline="hanging">-4</text>
+   <text x="405" y="2185" text-anchor="middle" dominant-baseline="hanging">-3.5</text>
+   <text x="490" y="2185" text-anchor="middle" dominant-baseline="hanging">-3</text>
+   <text x="575" y="2185" text-anchor="middle" dominant-baseline="hanging">-2.5</text>
+   <text x="660" y="2185" text-anchor="middle" dominant-baseline="hanging">-2</text>
+   <text x="745" y="2185" text-anchor="middle" dominant-baseline="hanging">-1.5</text>
+   <text x="830" y="2185" text-anchor="middle" dominant-baseline="hanging">-1</text>
+   <text x="915" y="2185" text-anchor="middle" dominant-baseline="hanging">-0.5</text>
+   <text x="1000" y="2185" text-anchor="middle" dominant-baseline="hanging">0</text>
+   <text x="1085" y="2185" text-anchor="middle" dominant-baseline="hanging">0.5</text>
+   <text x="1170" y="2185" text-anchor="middle" dominant-baseline="hanging">1</text>
+   <text x="1255" y="2185" text-anchor="middle" dominant-baseline="hanging">1.5</text>
+   <text x="1340" y="2185" text-anchor="middle" dominant-baseline="hanging">2</text>
+   <text x="1425" y="2185" text-anchor="middle" dominant-baseline="hanging">2.5</text>
+   <text x="1510" y="2185" text-anchor="middle" dominant-baseline="hanging">3</text>
+   <text x="1595" y="2185" text-anchor="middle" dominant-baseline="hanging">3.5</text>
+   <text x="1680" y="2185" text-anchor="middle" dominant-baseline="hanging">4</text>
+   <text x="1765" y="2185" text-anchor="middle" dominant-baseline="hanging">4.5</text>
+   <text x="1850" y="2185" text-anchor="middle" dominant-baseline="hanging">5</text>
+   <text x="120" y="2153.75" text-anchor="end" dominant-baseline="central">-1</text>
+   <text x="120" y="2094.93" text-anchor="end" dominant-baseline="central">-0.75</text>
+   <text x="120" y="2036.1" text-anchor="end" dominant-baseline="central">-0.5</text>
+   <text x="120" y="1977.28" text-anchor="end" dominant-baseline="central">-0.25</text>
+   <text x="120" y="1918.46" text-anchor="end" dominant-baseline="central">0</text>
+   <text x="120" y="1859.63" text-anchor="end" dominant-baseline="central">0.25</text>
+   <text x="120" y="1800.81" text-anchor="end" dominant-baseline="central">0.5</text>
+   <text x="120" y="1741.99" text-anchor="end" dominant-baseline="central">0.75</text>
+   <text x="120" y="1683.16" text-anchor="end" dominant-baseline="central">1</text>
+   <text x="120" y="1624.34" text-anchor="end" dominant-baseline="central">1.25</text>
+   <text x="120" y="1565.51" text-anchor="end" dominant-baseline="central">1.5</text>
+   <text x="120" y="1506.69" text-anchor="end" dominant-baseline="central">1.75</text>
+   <text x="120" y="1447.87" text-anchor="end" dominant-baseline="central">2</text>
+   <text x="120" y="1389.04" text-anchor="end" dominant-baseline="central">2.25</text>
+   <text x="120" y="1330.22" text-anchor="end" dominant-baseline="central">2.5</text>
+   <text x="120" y="1271.4" text-anchor="end" dominant-baseline="central">2.75</text>
+   <text x="120" y="1212.57" text-anchor="end" dominant-baseline="central">3</text>
+   <text x="120" y="1153.75" text-anchor="end" dominant-baseline="central">3.25</text>
+   <text x="120" y="1094.93" text-anchor="end" dominant-baseline="central">3.5</text>
+   <text x="120" y="1036.1" text-anchor="end" dominant-baseline="central">3.75</text>
+   <text x="120" y="977.279" text-anchor="end" dominant-baseline="central">4</text>
+   <text x="120" y="918.456" text-anchor="end" dominant-baseline="central">4.25</text>
+   <text x="120" y="859.632" text-anchor="end" dominant-baseline="central">4.5</text>
+   <text x="120" y="800.809" text-anchor="end" dominant-baseline="central">4.75</text>
+   <text x="120" y="741.985" text-anchor="end" dominant-baseline="central">5</text>
+   <text x="120" y="683.162" text-anchor="end" dominant-baseline="central">5.25</text>
+   <text x="120" y="624.338" text-anchor="end" dominant-baseline="central">5.5</text>
+   <text x="120" y="565.515" text-anchor="end" dominant-baseline="central">5.75</text>
+   <text x="120" y="506.691" text-anchor="end" dominant-baseline="central">6</text>
+   <text x="120" y="447.868" text-anchor="end" dominant-baseline="central">6.25</text>
+   <text x="120" y="389.044" text-anchor="end" dominant-baseline="central">6.5</text>
+   <text x="120" y="330.221" text-anchor="end" dominant-baseline="central">6.75</text>
+   <text x="120" y="271.397" text-anchor="end" dominant-baseline="central">7</text>
+   <text x="120" y="212.574" text-anchor="end" dominant-baseline="central">7.25</text>
+   <text x="120" y="153.75" text-anchor="end" dominant-baseline="central">7.5</text>
  </g>
  <g font-family="sans-serif" font-size="18" fill="#bf7f7f">
    
-   <text x="1000" y="2210" text-anchor="middle" dominant-baseline="hanging" font-weight="bold">X axis test!</text>
+   <text x="1000" y="2208" text-anchor="middle" dominant-baseline="hanging" font-weight="bold">X axis test!</text>
    
-   <text x="60" y="1150" transform="rotate(-90, 60, 1150)" text-anchor="middle" dominant-baseline="central" font-weight="bold">Y axis test!</text>
+   <text x="42" y="1150" transform="rotate(-90, 42, 1150)" text-anchor="middle" dominant-baseline="central" font-weight="bold">Y axis test!</text>
  </g>
  <g font-family="sans-serif" font-size="50" fill="#bf00bf">
    <text x="1000" y="60" text-anchor="middle" dominant-baseline="hanging" font-weight="bold">Testing Title!</text>
