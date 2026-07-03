@@ -11,7 +11,7 @@ int main()
         ys.push_back(exp(i*0.0004));
         // ys.push_back(xs[i],3));
     }
-    Plot2DData pd(xs,ys,LineStyle::Solid, "#0000ff", 5, 0.9, "exp(0.4x)");
+    Plot2DData pd(xs,ys,LineStyle::Solid, 0, 0, 255, 5, 0.9, "exp(0.4x)");
     plotdata.push_back(pd);
     xs = {};
     ys = {};
@@ -21,7 +21,7 @@ int main()
         ys.push_back(sin(i*0.001));
         // ys.push_back(xs[i],3));
     }
-    Plot2DData pd2(xs,ys,LineStyle::Solid, "#ff0000", 5, 0.8, "sin(x)");
+    Plot2DData pd2(xs,ys,LineStyle::Solid, 255, 0, 0, 5, 0.8, "sin(x)");
     plotdata.push_back(pd2);
     xs = {};
     ys = {};
@@ -31,7 +31,7 @@ int main()
         ys.push_back(cos(i*0.001));
         // ys.push_back(xs[i],3));
     }
-    Plot2DData pd3(xs,ys,LineStyle::Solid, "#00ff00", 5, 0.7, "cos(x)");
+    Plot2DData pd3(xs,ys,LineStyle::Solid, 0, 255, 0, 5, 0.7, "cos(x)");
     plotdata.push_back(pd3);
     xs = {};
     ys = {};
@@ -53,7 +53,7 @@ int main()
         ys.push_back(8.0*std::pow(i*0.0001,3));
         // ys.push_back(xs[i],3));
     }
-    plot.addData(xs,ys,LineStyle::DashDot, "#007f7f", 5, 0.6, "(0.1x)&#179;");
+    plot.addData(xs,ys,LineStyle::DashDot, 0, 127, 127, 5, 0.6, "(0.1x)&#179;");
     std::string filename = "test-6.svg";
     // plot.forceYMinMax(-1.0,7.5);
     plot.setborder(true);
