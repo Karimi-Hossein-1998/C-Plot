@@ -22,226 +22,201 @@ Although one can add new data to the plot after initiating for the single curve 
 
 1. [Plot2D](#plot2d)
     1. [Table of Contents](#table-of-contents)
-    2. [Parameters and Flage](#parameters-and-flags)
-        1. [Plot Shape](#plot-shape)
-        2. [Shape Derived Parameters](#shape-derived-parameters)
-        3. [Ticks](#ticks)
-        4. [Border and Axis](#border-and-axis)
-        5. [Grid](#grid)
-        6. [Title](#title)
-        7. [Curve (data)](#curve-data)
-        8. [Miscellany](#miscellany)
-    3. [Member Functions](#member-functions)
-        1. [Setters](#setters)
-        2. [Plot Modifiers](#plot-modifiers)
-            1. [Pixel <-> Point](#pixel---point)
-            2. [Calculations](#calculations)
-            3. [Writing and Drawing](#writing-and-drawing)
-    4. [Extras](#extras)
-    5. [Other Classes](#other-classes)
-        1. [`LineStyle`](#linestyle)
-        2. [`Plot2DData`](#plot2ddata)
+    2. [`Plot2D` Class](#plot2d-class)
+        1. [Flags](#flags)
+        2. [Labels and Titles](#labels-and-titles)
+        3. [Values](#values)
+        4. [Values with Default](#values-with-default)
+        5. [Private Functions](#private-functions)
+        6. [Adding Data Series](#adding-data-series)
+        7. [Manual MinMax](#manual-minmax)
+        8. [Set the Flags](#set-the-flags)
+        9. [Set the Labels and Titles](#set-the-labels-and-titles)
+        10. [Set Some Values](#set-some-values)
+        11. [Set the Font Sizes](#set-the-font-sizes)
+        12. [Set the Widths](#set-the-widths)
+        13. [Set the Colors](#set-the-colors)
+        14. [Plotting](#plotting)
+    3. [`LineStyle` Enumeration Class](#linestyle-enumeration-class)
+    4. [`LegendPos` Enumeration Class](#legendpos-enumeration-class)
+    5. [`Plot2DData` Class](#plot2ddata-class)
+    6. [Other Functions](#other-functions)
 
-## Parameters and flags
+## `Plot2D` Class
 
-There are many *flags* (boolean type) to determine different conditioins and many *parameters* that determine shapes, sizes, and scales.
+This class has different *parameters* and *flags* for a customizable plot image.
 
-### Plot Shape
+### Initialization
 
-The parameters determining the shape of the image.
+There are two different initializations (i.e. *constructors*) available.
 
-1. **`size_t width`:** It represents the width of the image in *pixels*.
-2. **`size_t height`:** It represents the height of the image in *pixels*.
-3. **`dVec xVals`:** The $x$ values of data points.
-4. **`dVec yVals`:** The $y$ values of data points.
-5. **`size_t padding`:** The distance of the actual plot from the sides.
+1. **`Plot2D(const dVec& xs, const dVec& ys, size_t w = 1000, size_t h = 1000, size_t pad = 100)`:** This is an option to initialize the class with one data series (`xVals`,`yVals`). It provides default values for `width=1000`, `height=1000`, `padding=100`. This is good for single data series. (Although additional data series can be added with *two* ways to do so.)
+2. **`Plot2D(const Vec<Plot2DData> data, size_t w = 1000, size_t h = 1000, size_t pad = 100)`:** This one is an option to initialize the class with multiple instances of data series (`data.xs`, `data.ys`) with their own distinct features. It provides default value for width, height, and padding just like the previous option. This one is good for adding multiple lines to the plotted image.
 
-These are also the main requirements for class initiation.
+### Flags
 
-```C++
-Plot2D(const dVec& xs,const dVec& ys,size_t w=1000,size_t h=1000,size_t pad=100);
-```
+- **`bool border = true`:** Whether *borders* are drawn. Default is `true`.
+- **`bool axis = true`:** Whether *axes* are drawn. Default is `true`.
+- **`bool ticks = true`:** Whether *ticks* are drawn. Default is `true`.
+- **`bool grid = true`:** Whether *grids* are drawn. Default is `true`.
+- **`bool axisLabel = true`:** Whether *axes labels* are written. Default is `true`.
+- **`bool autoTicks = true`:** Whether *ticks* are placed automatically or start from the minimum value up to maximum value regardless of the numbers (less pretty). Default is `true`.
+- **`bool plotTitle = false`:** Whether *plot title* is written. Default is `false`.
+- **`bool plotLegend = false`:** Whether *legend* is drawn. Default is `false`.
+- **`bool xAxisVisible`:** Whether the *x-axis* is visible. This will be inferred from the data series and cannot be set forcefully (in an indirect way one can force the values of `yMin`, and `yMax` in a way that makes the *x-axis* visible).
+- **`bool yAxisVisible`:** Whether the *y-axis* is visible. This will be inferred from the data series and cannot be set forcefully (in an indirect way one can force the values of `xMin`, and `xMax` in a way that makes the *y-axis* visible).
 
-### Shape Derived Parameters
+### Labels and Titles
 
-Some parameters are derived through the *shape* parameters. All except four are calculated inside class initiation function `Plot2D::Plot2D`.
+- **`std::string xAxisLabel = "X"`:** The *label* that is written below *x-axis* if `axisLabel=true`.
+- **`std::string yAxisLabel = "Y"`:** The *label* that is written beside *y-axis* if `axisLabel=true`.
+- **`std::string plotTitleText = "Title!"`:** The *title* that is written on top of the plot if `plotTitle=true`
+- **`std::string plotLineLabel = ""`:** The entry corresponding to the `xVals,yVals` data series in the *legend* if `plotLegend=true`.
 
-1. **`size_t drawW`:** `width-2*padding` (the actual plot width).
-2. **`size_t drawH`:** `height-2*padding` (the actual plot height).
-3. **`double xMin`:** The *minimum* value on $x$-axis.
-4. **`double xMax`:** The *maximum* value on $x$-axis.
-5. **`double yMin`:** The *minimum* value on $y$-axis.
-6. **`double yMax`:** The *maximum* value on $y$-axis.
-7. **`double gLeft`:** The pixel address of $x_{min}$ (`xMin`). Calculated inside `Plot2D::plotSVG` function.
-8. **`double gRight`:** The pixel address of $x_{max}$ (`xMax`). Calculated inside `Plot2D::plotSVG` function.
-9. **`double gTop`:** The pixel address of $y_{max}$ (`yMax`). Calculated inside `Plot2D::plotSVG` function.
-10. **`double gBottom`:** The pixel address of $y_{min}$ (`yMin`). Calculated inside `Plot2D::plotSVG` function.
-11. **`double xRange`:** The size of the *domain*, i.e. $x_{max}-x_{min}$.
-12. **`double yRange`:** The size of the *range*, i.e. $y_{max}-y_{min}$.
-13. **`double xScale`:** The *scaling factor* of the $x$ values mapped to pixels (`drawW/xRange`).
-14. **`double yScale`:** The *scaling factor* of the $y$ values mapped to pixels (`drawH/yRange`).
-15. **`bool xAxisVisible`:** A check for visibility of $x$ axis.
-16. **`bool yAxisVisible`:** A check for visibility of $y$ axis.
-17. **`std::string backColor`:** Color of the background.
+### Values
 
-### Ticks
+- **`double epsilon = 1e-10`:** A default value for a very small number.
+- **`Vec<Plot2DData> plotData`:** A `std::vector` of a `class` container for data series (a set of data series).
+- **`size_t width`:** Total width of the generated vector image (in pixels).
+- **`size_t height`:** Total height of the generated vector image (in pixels).
+- **`dVec xVals`:** A `std::vector<double>` of *x* values belonging to the initialization data series.
+- **`dVec yVals`:** A `std::vector<double>` of *y* values belonging to the initialization data series.
+- **`size_t padding`:** The distance of the plot border (inner rectangle) from the sides.
+- **`double xMax`:** Maximum value of all *x* values of all data series.
+- **`double xMin`:** Minimum value of all *x* values of all data series.
+- **`double xRange`:** The range (span) of the *x* values.
+- **`double yMax`:** Maximum value of all *y* values of all data series.
+- **`double yMin`:** Minimum value of all *y* values of all data series.
+- **`double yRange`:** The range (span) of the *y* values.
+- **`double xScale`:** The scale factor of *x* (ratio of `width-2*padding` and `xRange`)
+- **`double yScale`:** The scale factor of *y* (ratio of `height-2*padding` and `yRange`)
+- **`size_t drawW`:** The actual plot width (`width-2*padding`).
+- **`size_t drawH`:** The actual plot height (`height-2*padding`).
+- **`double gLeft`:** The position of the *left* berder line.
+- **`double gRight`:** The position of the *right* border line.
+- **`double gBottom`:** The position of the *bottom* border line.
+- **`double gTop`:** The position of the *top* border line.
+- **`size_t numYTicks`:** Number of ticks on *y-axis* (is derived from number of ticks on *x-axis* and `drawW`, and `drawH`).
+- **`double xStep`:** The distance between two consecutive ticks on *x-axis*.
+- **`double yStep`:** The distance between two consecutive ticks on *y-axis*.
+- **`dVec xTickPixelsX`:** Position of *x-axis* ticks in pixels.
+- **`dVec xTickPointsX`:** Position of *x-axis* ticks in real values.
+- **`dVec yTickPixelsY`:** Position of *y-axis* ticks in pixels.
+- **`dVec yTickPointsY`:** Position of *y-axis* ticks in real values.
 
-These parameters determine whether and how the *ticks* are drawn.
+### Values with Default
 
-1. **`bool ticks`:** Whether to draw ticks.
-2. **`double tickMarkSize`:** The size (length) of tick marks.
-3. **`bool autoTicks`:** Whether to set tick placement automatically (if `false` it would be placed starting from the minimum values, i.e. `xMin`, and `yMin`).
-4. **`size_t numXTicks`:** Expected number of ticks on $x$-axis.
-5. **`size_t numYTicks`:** Expected number of ticks on $y$-axis.(`numYTicks=numXTicks*drawH/drawW`)
-6. **`double plotNumeralsFontSize`:** Font size of the numbers of corresponding ticks.
-7. **`std::string plotNumeralsColor`:** Color of the numbers of corresponding ticks.
-8. **`size_t plotNumeralsSignificantDigits`:** Number precision.
+- **`size_t numXTicks = 11`:** Number of ticks on *x-axis*. Default is `11`.
+- **`double tickMarkSize = 6.0`:** The size (length) of the tick marks. Default is `6.0`.
+- **`double plotPad = 4.0`:** The value of extra space padded around the actual plot (middle rectangle). Default is `4.0`.
+- **`double borderLineWidth = 1.5`:** Width of the *border* lines (rectangle) separating the actual plot from the outer padding. Default is `1.0`.
+- **`double axisLineWidth = 2.5`:** Width of the *axis* lines. Default is `2.5`.
+- **`double gridLineWidth = 0.5`:** Width of the *grid* lines. Default is `0.5`.
+- **`double plotLineWidth = 1.0`:** Width of the line corresponding to the initialization data series. Default is `1.0`.
+- **`double plotNumeralsFontSize = 15.0`:** Font size of the *numerals* corresponding to ticks showing their real (as opposed to pixel) values. Default if `15.0`.
+- **`double plotAxisLabelFontSize = 16.0`:** Font size of the *axis label* text. Default is `16.0`.
+- **`double plotTitleFontSize = 20.0`:** Font size of the *plot title* text. Default is `20.0`.
+- **`double legendFontSize = 10`:** Font size of the *legend* text entries. Default is `10.0`.
+- **`size_t plotNumeralsSignificantDigits = 3`:** The number corresponding to digits of precision. Default if `3`.
+- **`double plotLineOpacity = 1.0`:** The opacity of the plotted line. Default is `1.0` (fully opaque).
+- **`LineStyle plotLineStyle = LineStyle::Solid`:** The style of the plotted line for the initialization data series. Default is `LineStyle::Solid`.
+- **`LegendPos legendPos = LegendPos::TopLeft`:** The position of the legend (the rectangular box). Default is `LegendPos::TopLeft`.
+- **`std::string backColor = "#ffffff"`:** The color of the background color. Default is `#ffffff` (i.e. (255,255,255) or *white*).
+- **`std::string borderLineColor = "#000000"`:** The color of the border line. Default is `#000000` (i.e. (0,0,0) or *black*).
+- **`std::string axisLineColor = "#000000"`:** The color of the axis lines. Default is `#000000` (i.e. (0,0,0) or *black*).
+- **`std::string gridLineColor = "#101010"`:** The color of grid lines. Default is `#101010` (i.e. (16,16,16) or *dark gray*).
+- **`std::string plotNumeralsColor = "#000000"`:** The color of the tick numbers. Default is `#000000` (i.e. (0,0,0) or *black*).
+- **`std::string plotLineColor = "#0000ff"`:** The color of the line color. Default is `#0000ff` (i.e. (0,0,255) or *blue*).
+- **`std::string plotAxisLabelColor = "#1f1f1f"`:** The color of labels of the axes. Default is `#1f1f1f` (i.e. (31,31,31) or *dark gray*).
+- **`std::string plotTitleColor = "#000000"`:** The color of the title of the plot. Default is `#000000` (i.e. (0,0,0) or *black*).
 
-### Border and Axis
+### Private Functions
 
-Whether and how to draw *axis* and *border*.
+These are the functions that do the inner works of the plotting and only called by other functions (the user won't need to call them directly, but they are included here for completeness and as an aid in attempts to modify the library.)
 
-1. **`bool border`:** Whether to draw border.
-2. **`bool axis`:** Whether to draw axis.
-3. **`bool axisLabel`:** Whether to write axis labels.
-4. **`double borderLineWidth`:** Width of the border drawn.
-5. **`double axisLineWidth`:** Width of the axis drawn.
-6. **`std::string borderLineColor`:** Color of the border drawn.
-7. **`std::string axisLineColor`:** Color of the axis drawn.
-8. **`std::string xAxisLabel`:** Label written for $x$ axis (centered below axis).
-9. **`std::string yAxisLabel`:** Label written for $y$ axis (centered left of the axis).
-10. **`double plotPad`:** Amout of extra space on the plot region.
-11. **`double plotAxisLabelFontSize`:** Font size of the axis label.
-12. **`std::string plotAxisLabelColor`:** Color of the axis label.
+- **`inline double toPixelX( const double x) const {return padding + (x-xMin)*xScale;}`:** It converts *x* value into pixel value on horizontal axis.
+- **`inline double toPixelY( const double y) const {return (height-padding) - (y-yMin)*yScale;}`:** It converts *y* value into pixel value on vertical axis.
+- **`inline double toPointX( const double x) const {return (x-padding)/xScale + xMin;}`:** It converts pixel value to real *x* value.
+- **`inline double toPointY( const double y) const {return yMin - (y-height+padding)/yScale;}`:** It converts pixel value to real *y* value.
+- **`inline void drawTicks(std::ofstream& file)`:** It draws the ticks and derives and stores their positions. (if axes are visible it places ticks on both axes and on left and lower border line.)
+- **`inline void drawGrid(std::ofstream& file)`:** It draws the grid lines based on the tick placements.
+- **`inline void writeNumbers(std::ofstream& file)`:** It writes corresponding numbers next to tick marks placed on left and lower border line. 
+- **`inline void writeAxisLabels(std::ofstream& file)`:** It writes axis labels centeres and parallel to the corresponding axis.
+- **`inline void writeplotTitle(std::ofstream& file)`:** It writes plot title centered on the top of the plot.
+- **`inline void drawLegend(std::ofstream& file)`:** It draws the legend box and writes the line labels on the designated position.
+- **`inline double calcAutoXTicksStep()`:** Calculates ticks in a way that they are multiples of {\dots, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, \dots}. It returns a value for `xStep`.
+- **`inline double calcAutoYTicksStep()`:** Calculates ticks in a way that they are multiples of {\dots, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, \dots}. It returns a value for `yStep`.
 
-### Grid
+### Adding Data Series
 
-Whether and how to draw *grid*.
+1. **`inline void addData(const dVec& x, const dVec& y, LineStyle ls, size_t R, size_t G, size_t B, double lw, double op = 1.0, std::string ll = "")`:** This function provides a method of adding one data series per call. It has default values for *opacity* and *line label* for the new data series.
+2. **`inline void addMultipleData(const Vec<Plot2DData>& plotdata)`:** This function provides a method of adding multiple data series on one call.
 
-1. **`bool grid`:** Whether to draw the grids.
-2. **`double gridLineWidth`:** Width of grids drawn.
-3. **`std::string gridLineColor`:** Color of the grid drawn.
+### Manual MinMax
 
-### Title
+- **`inline void forceXMinMax(double xMin_, double xMax_)`:** Change `xMin`, and `xMax` (set them manually).
+- **`inline void forceYMinMax(double yMin_, double yMax_)`:** Change `xMin`, and `xMax` (set them manually).
 
-Whether and how to draw *title*.
+### Set the Flags
 
-1. **`bool plotTitle`:** Whether to write a title.
-2. **`std::string plotTitleText`:** The text to be written.
-3. **`double plotTitleFontSize`:** Size of the written title.
-4. **`std::string plotTitleColor`:** Color of the written title.
+- **`inline void setborder(bool border_) {border=border_;}`:** Set the `border` flag.
+- **`inline void setaxis(bool axis_) {axis=axis_;}`:** Set the `axis` flag.
+- **`inline void setticks(bool ticks_) {ticks=ticks_;}`:** Set the `ticks` flag.
+- **`inline void setgrid(bool grid_) {grid=grid_;}`:** Set the grid flag.
+- **`inline void setplotTitle(bool title_) {plotTitle=title_;}`:** Set the `plotTitle` flag.
+- **`inline void setaxisLabel(bool al) {axisLabel=al;}`:** Set the `axisLabel` flag.
+- **`inline void setautoTicks(bool at) {autoTicks=at;}`:** Set the `autoTicks` flag.
+- **`inline void setplotLegend(bool pl) {plotLegend=pl;}`:** Set the `plotLegend` flag.
 
-### Curve (data)
+### Set the Labels and Titles
 
-1. **`double plotLineWidth`:** Width of the drawn curve.
-2. **`LineStyle plotLineStyle`:** Style of the curve (`Solid`,`Dotted`,`Dashed`,`DashDot`).
-3. **`std::string plotLineColor`:** Color of the curve.
+- **`inline void setxAxisLabel(std::string xal) {xAxisLabel=xal;}`:** Set the text (label) of *x-axis*.
+- **`inline void setyAxisLabel(std::string yal) {yAxisLabel=yal;}`:** Set the text (label) of *y-axis*.
+- **`inline void setplotTitleText(std::string titletext) {plotTitleText=titletext;}`:** Set the plot title text.
+- **`inline void setplotLineLabel(std::string pll) {plotLineLabel=pll;}`:** Set the line label (the text that would eventually be written as a legend entry).
 
-### Miscellany
+### Set Some Values
 
-These are the *intermediate* parameters in a sense.
+- **`inline void setnumXTicks(size_t nt) {numXTicks=nt;}`:** Set the `numXTicks` (number of tick marks on *x-axis*).
+- **`inline void settickMarkSize(double ts) {tickMarkSize=ts;}`:** Set the `tickMarkSize` (size or length of the tick marks).
+- **`inline void setplotPad(double pp) {plotPad=pp;}`:** Set the `plotPad` (extra space for the actual plot).
+- **`inline void setplotNumeralsSignificantDigits(size_t pnsd) {plotNumeralsSignificantDigits=pnsd;}`:** Set th `plotNumeralsSignificantDigits`.
+- **`inline void setplotLineOpacity(double op) {plotLineOpacity=op;}`:** Set the `plotLineOpacity`.
+- **`inline void setplotLineStyle(LineStyle pls) {plotLineStyle=pls;}`:** Set the `plotLineStyle`.
+- **`inline void setlegendPos(LegendPos lp) {legendPos=lp;}`:** Set the `legendPos`.
 
-1. **`xTickPointsX`:** The $x$ points values of the $x$-axis ticks.
-2. **`xTickPixelsX`:** The $x$ pixels values of the $x$-axis ticks.
-3. **`yTickPointsY`:** The $y$ points values of the $y$-axis ticks.
-4. **`yTickPixelsY`:** The $y$ pixels values of the $y$-axis ticks.
-5. **`xStep`:** The step size between $x$-axis ticks.
-6. **`yStep`:** The step size between $y$-axis ticks.
+### Set the Font Sizes
 
-## Member Functions
+- **`inline void setplotNumeralsFontSize(double pnfs) {plotNumeralsFontSize=pnfs;}`:** Set the `plotNumeralFontSize`.
+- **`inline void setplotAxisLabelFontSize(double palfs) {plotAxisLabelFontSize=palfs;}`:** Set the `plotAxisLabelFontSize`.
+- **`inline void setplotTitleFontSize(double ptfs) {plotTitleFontSize=ptfs;}`:** Set the `plotTitleFontSize`.
+- **`inline void setlegendFontSize(double lfs) {legendFontSize=lfs;}`:** Set the `legendFontSize`.
 
-Functions that call upon the parameters, change them, or use them to prepare and plot.
+### Set the Widths
 
-### Setters
+- **`inline void setborderLineWidth(double blw) {borderLineWidth=blw;}`:** Set the `borderLineWidth`.
+- **`inline void setaxisLineWidth(double alw) {axisLineWidth=alw;}`:** Set the `axisLineWidth`.
+- **`inline void setgridLineWidth(double glw) {gridLineWidth=glw;}`:** Set the `gridLineWidth`.
+- **`inline void setplotLineWidth(double plw) {plotLineWidth=plw;}`:** Set the `plotLineWidth`.
 
-Functions that *set* a new value to a *parameter* or *flag*.
+### Set the Colors
 
-1. **`void setborder(bool border_)`:** Set `border`.
-2. **`void setaxis(bool axis_)`:** Set `axis`.
-3. **`void setticks(bool ticks_)`:** Set `tick`.
-4. **`void setgrid(bool grid_)`:** Set `grid`.
-5. **`inline void setaxisLabel(bool al)`:** Set `axisLabel`.
-6. **`void setplotTitle(bool title_)`:** Set `title`.
-7. **`void setautoTicks(bool at)`:** Set `autoTicks`.
-8. **`void setnumXTicks(size_t nt)`:** Set `numXTicks`.
-9. **`void settickMarkSize(double ts)`:** Set `tickMarkSize`.
-10. **`void setplotPad(double pp)`:** Set `plotPad`.
-11. **`void setborderLineWidth(double blw)`:** Set `borderLineWidth`.
-12. **`void setgridLineWidth(double glw)`:** Set `gridLineWidth`.
-13. **`void setaxisLineWidth(double alw)`:** Set `axisLineWidth`.
-14. **`void setplotLineWidth(double plw)`:** Set `plotLineWidth`.
-15. **`void setplotNumeralsFontSize(double pnfs)`:** Set `plotNumeralsFontSize`.
-16. **`void setplotAxisLabelFontSize(double palfs)`:** Set `plotAxisLabelFontSize`.
-17. **`void setplotTitleFontSize(double ptfs)`:** Set `plotTitleFontSize`.
-18. **`void setbackColor(size_t R, size_t G, size_t B)`:** Set `backColor`.
-19. **`void setborderLineColor(size_t R, size_t G, size_t B)`:** Set `borderLineColor`.
-20. **`void setaxisLineColor(size_t R, size_t G, size_t B)`:** Set `axisLineColor`.
-21. **`void setgridLineColor(size_t R, size_t G, size_t B)`:** Set `gridLineColor`.
-22. **`void setplotNumeralsColor(size_t R, size_t G, size_t B)`:** Set `plotNumeralsColor`.
-23. **`void setplotLineColor(size_t R, size_t G, size_t B)`:** Set `plotLineColor`.
-24. **`void setplotAxisLabelColor(size_t R, size_t G, size_t B)`:** Set `plotAxisLabelColor`.
-25. **`void setplotTitleColor(size_t R, size_t G, size_t B)`:** Set `plotTitleColor`.
-26. **`void setxAxisLabel(std::string xal)`:** Set `xAxisLabel`.
-27. **`void setyAxisLabel(std::string yal)`:** Set `yAxisLabel`.
-28. **`void setplotTitleText(std::string titletext)`:** Set `plotTitleText`.
-29. **`void setplotNumeralsSignificantDigits(size_t pnsd)`:** Set `plotNumeralsSignificantDigits`.
-30. **`void setplotLineStyle(LineStyle pls)`:** Set `plotLineStyle`.
+- **`inline void setbackColor(size_t R, size_t G, size_t B)`:** Set the `backColor`.
+- **`inline void setborderLineColor(size_t R, size_t G, size_t B)`:** Set the `borderLineColor`.
+- **`inline void setaxisLineColor(size_t R, size_t G, size_t B)`:** Set the `axisLineColor`.
+- **`inline void setgridLineColor(size_t R, size_t G, size_t B)`:** Set the `gridLineColor`.
+- **`inline void setplotNumeralsColor(size_t R, size_t G, size_t B)`:** Set the `plotNumeralsColor`.
+- **`inline void setplotLineColor(size_t R, size_t G, size_t B)`:** Set the `plotLineColor`.
+- **`inline void setplotAxisLabelColor(size_t R, size_t G, size_t B)`:** Set the `plotAxisLabelColor`.
+- **`inline void setplotTitleColor(size_t R, size_t G, size_t B)`:** Set the `plotTitleColor`.
 
-### Plot Modifiers
+### Plotting
 
-These function modify aspects of the plot, or calculate values for the plot.
+Only plotting function is `inline void plotSVG(const std::string& filename)`.
 
-#### Pixel <-> Point
+## `LineStyle` Enumeration Class
 
-1. **`double toPixelX(double x)`:** Transforms the $x$ component of a *point* in geometric space to pixel address in image space.
-2. **`double toPixelY(double y)`:** Transforms the $y$ component of a *point* in geometric space to pixel address in image space.
-3. **`double toPointX(double x)`:** Inverse of `toPixelX`.
-4. **`double toPointY(double y)`:** Inverse of `toPixelY`.
-
-#### Calculations
-
-These functions calculate underlying parameters.
-
-1. **`double calcAutoXTicksStep()`:** Calculates the `autoTicks` step size for the $x$ axis.
-2. **`double calcAutoYTicksStep()`:** Calculates the `autoTicks` step size for the $y$ axis.
-
-#### Writing and Drawing
-
-These functions either draw some elements of the plot, or write the required texxts.
-
-1. **`void drawTicks(std::ofstream& file)`:** Draws the ticks based on either *automatic* style (multiples of $\dots,0.1,0.25,0.5,1.0,2.5,5.0,10.0,\dots$) or the *default* style (dividing the range by the number of ticks and starting the ticks from the axis minimum value). It uses the designated parameters to do so.
-2. **`void drawGrid(std::ofstream& file)`:** Draws the grid based on designated parameters.
-3. **`void writeNumbers(std::ofstream& file)`:** Writes numbers corresponding to each tick near it based on the designated parameters. It writes number only when the ticks are drawn, otherwise you won't get the numbers.
-4. **`void writeAxisLabels(std::ofstream& file)`:** Writes the Axis labels centered and parallel to the axes in bottom and left side of the plot.
-5. **`void writeplotTitle(std::ofstream& file)`:** Writes the *title* centered on top of the plot.
-6. **`void plotSVG(std::string filename)`:** This one draws the plot and calls the other writing and drawing functions if conditions are met.
-
-**Some modifier functions:**
-
-1. **`void forceXMinMax(double xMin_, double xMax_)`:** This one forces `xMin` and `xMax` as the user desires, then calculates `xRange` and `xScale` based on that and sets the `yAxisVisible` flag.
-2. **`void forceYMinMax(double yMin_, double yMax_)`:** This one forces `yMin` and `yMax` as the user desires, then calculates `yRange` and `yScale` based on that and sets the `xAxisVisible` flag.
-
-## Extras
-
-Some extra elements added to the `Plot2D` class for better control over plots.
-
-1. **`Vec<Plot2DData> plotData`:** This is an array of a class `Plot2DData` which contains data for a plot (the $x$ values, $y$ values, the `LineStyle`, the line color, the line width).
-2. **`void addData(const dVec& x, const dVec& y, LineStyle ls, std::string lc, double lw)`:** Add one set of $x$ and $y$ arrays to the plot.
-3. **`void addMultipleData(const Vec<Plot2DData>& plotdata)`:** This one adds multiple sets of $x$ and $y$ array to plot.
-4. **`double plotLineOpacity`:** To be able to set how opaque a line is. Default is `1.0` (fully opaque).
-5. **`void setplotLineOpacity(double op)`:** Set the *opacity* of the plotted line.
-6. **`std::string plotLineLabel`:** The label of the line which data has been provided via `Plot2D(const dVec& x, const dVec& y, size_t w, size_t h, size_t pad)` method.
-7. **`void setplotLineLabel(std::string pll)`:** To set the line label `plotLineLabel`.
-8. **`bool plotLegend`:** Whether to include the legend alongside the plot.
-9. **`void setplotLegend(bool pl)`:** To set the `plotLegend`.
-
-## Other Classes
-
-Two other classes has been added to add versatility to the plotting experience. One tracks the line style for the $x-y$ curve (`enum class LineStyle`) and the other is the one that helps plot multiple curves at the same plot (`class Plot2DData`).
-
-### `LineStyle`
-
-This is an `enum class`, which means it presents a bunch of options for a specific use, here it presents options for the style of the curve line that will be drawn. There are four styles for now.
+This class helps determine how the line is plotted based on the `Plot2D::plotLineStyle` or `Plot2D::plotData.lineStyle`. There are four different types of plot style.
 
 ```C++
 enum class LineStyle
@@ -253,9 +228,28 @@ enum class LineStyle
 };
 ```
 
-### `Plot2DData`
+- **Solid:** A continuous solid line.
+- **Dashed:** An interval of solid line segments followed by a smaller space (fragmented line).
+- **Dotted:** A Series of filled circles (or dots) plotted with small gaps in between.
+- **DashDot:** An interval of line fragment, space, dot, space, repeat.
 
-This one holds the data needed for a curve line that will be drawn.
+## 'LegendPos` Enumeration Class
+
+This *class* is for setting the position of the plot legend (can be placed on four corners.)
+
+```C++
+enum class LegendPos
+{
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight
+};
+```
+
+## `Plot2DData` Class
+
+This *class* encapsulates data needed for each set of data series. It includes two `double` vectors for *x* (`dVec xs`) and *y* (`dVec ys`), the *style* of the corresponding line in the plot (`LineStyle lineStyle`), the *color* of the line *`std::string lineColor`*, the *width* of the line (`double lineWidth`), the *opacity* of the line (`double lineOpacity`), the *label* of the line (`std::string lineLabel`). `lineOpacity`, and `lineLabel` have default values.
 
 ```C++
 class Plot2DData
@@ -268,7 +262,24 @@ class Plot2DData
         double lineWidth;
         double lineOpacity = 1.0;
         std::string lineLabel = "";
-        Plot2DData(const dVec& x, const dVec& y, LineStyle ls, std::string lc, double lw, double lo = 1.0, std::string ll = "")
-        : xs(x), ys(y), lineStyle(ls), lineColor(lc), lineWidth(lw) {};
+        Plot2DData(const dVec& x, const dVec& y, LineStyle ls, size_t R, size_t G, size_t B, double lw, double op = 1.0, std::string ll = "")
+        : xs(x), ys(y), lineStyle(ls), lineWidth(lw), lineOpacity(op), lineLabel(ll)
+        {
+            if ( (R<256) && (G<256) && (B<256) )
+            {
+                lineColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
+                    +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
+                    +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
+            }
+            else
+            {
+                lineColor = "#000000";
+                std::cout << "Values were out of bound! Defaulted to black for lineColor!\n";
+            }
+        };
 };
 ```
+
+## Other Functions
+
+The function `double estimateStringWidth(const std::string& text, double fontsize)` is used inside `Plot2D::drawLegend` function to get a rough estimate of the length of the `lineLabel`s to determine the width of the legend (inside `Plot2D::drawLegend`, the `legendWidth` parameter).
