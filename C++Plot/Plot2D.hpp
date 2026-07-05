@@ -205,7 +205,8 @@ class Plot2D
             double exponent = std::floor(std::log10(rawStep));
             double fraction = rawStep / std::pow(10.0,exponent);
             double cleanFraction = 1.0;
-            if (fraction<1.5) cleanFraction = 1.0;
+            if (fraction<1.2) cleanFraction = 1.0;
+            else if (fraction<1.5) cleanFraction = 1.25;
             else if (fraction<2.25) cleanFraction = 2.0;
             else if (fraction<3.75) cleanFraction = 2.5;
             else if (fraction<7.5) cleanFraction = 5.0;
@@ -218,7 +219,8 @@ class Plot2D
             double exponent = std::floor(std::log10(rawStep));
             double fraction = rawStep / std::pow(10.0,exponent);
             double cleanFraction = 1.0;
-            if (fraction<1.5) cleanFraction = 1.0;
+            if (fraction<1.2) cleanFraction = 1.0;
+            else if (fraction<1.5) cleanFraction = 1.25;
             else if (fraction<2.25) cleanFraction = 2.0;
             else if (fraction<3.75) cleanFraction = 2.5;
             else if (fraction<7.5) cleanFraction = 5.0;

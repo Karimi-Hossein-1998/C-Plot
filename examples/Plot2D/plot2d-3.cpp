@@ -1,4 +1,4 @@
-#include "../C++Plot/Plot2D.hpp"
+#include "../../C++Plot/Plot2D.hpp"
 
 int main()
 {
@@ -33,29 +33,9 @@ int main()
     }
     Plot2DData pd3(xs,ys,LineStyle::Solid, 0, 255, 0, 5);
     plotdata.push_back(pd3);
-    xs = {};
-    ys = {};
-    for ( int i=-5000; i<5001; ++i )
-    {
-        xs.push_back(i*0.001);
-        ys.push_back(exp(-i*0.0004));
-        // ys.push_back(xs[i],3));
-    }
-    // First initiatin.
-    Plot2D plot(xs,ys,2000,2300,150);
-    // Adding exp, sin, cos.
-    plot.addMultipleData(plotdata);
-    xs = {};
-    ys = {};
-    for ( int i=-5000; i<5001; ++i )
-    {
-        xs.push_back(i*0.001);
-        ys.push_back(8.0*std::pow(i*0.0001,3));
-        // ys.push_back(xs[i],3));
-    }
-    plot.addData(xs,ys,LineStyle::DashDot, 0, 127, 127, 5);
-    std::string filename = "test-4.svg";
-    // plot.forceYMinMax(-1.0,7.5);
+    Plot2D plot(plotdata,2000,2300,150);
+    std::string filename = "test-3.svg";
+    plot.forceYMinMax(-1.0,7.5);
     plot.setborder(true);
     plot.setaxis(true);
     plot.setticks(true);

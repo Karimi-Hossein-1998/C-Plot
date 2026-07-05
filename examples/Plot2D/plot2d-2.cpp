@@ -1,41 +1,18 @@
-#include "../C++Plot/Plot2D.hpp"
+#include "../../C++Plot/Plot2D.hpp"
 
 int main()
 {
-    Vec<Plot2DData> plotdata = {};
     dVec xs = {};
     dVec ys = {};
-    for ( int i=-5000; i<5001; ++i )
+    for ( int i=-5000; i<2001; ++i )
     {
         xs.push_back(i*0.001);
-        ys.push_back(exp(i*0.0004));
+        ys.push_back(exp(i*0.001));
         // ys.push_back(xs[i],3));
     }
-    Plot2DData pd(xs,ys,LineStyle::Solid, 0, 0, 255, 5);
-    plotdata.push_back(pd);
-    xs = {};
-    ys = {};
-    for ( int i=-5000; i<5001; ++i )
-    {
-        xs.push_back(i*0.001);
-        ys.push_back(sin(i*0.001));
-        // ys.push_back(xs[i],3));
-    }
-    Plot2DData pd2(xs,ys,LineStyle::Solid, 255, 0, 0, 5);
-    plotdata.push_back(pd2);
-    xs = {};
-    ys = {};
-    for ( int i=-5000; i<5001; ++i )
-    {
-        xs.push_back(i*0.001);
-        ys.push_back(cos(i*0.001));
-        // ys.push_back(xs[i],3));
-    }
-    Plot2DData pd3(xs,ys,LineStyle::Solid, 0, 255, 0, 5);
-    plotdata.push_back(pd3);
-    Plot2D plot(plotdata,2000,2300,150);
-    std::string filename = "test-3.svg";
-    plot.forceYMinMax(-1.0,7.5);
+    Plot2D plot(xs,ys,1700,1800,150);
+    std::string filename = "test-2.svg";
+    plot.forceYMinMax(0.0,7.5);
     plot.setborder(true);
     plot.setaxis(true);
     plot.setticks(true);
@@ -43,7 +20,7 @@ int main()
     plot.setaxisLabel(true);
     plot.setplotTitle(true);
     plot.setautoTicks(true);
-    plot.setnumXTicks(21);
+    plot.setnumXTicks(15);
     plot.settickMarkSize(10.0);
     plot.setplotPad(5.0);
     plot.setborderLineWidth(1.5);

@@ -1,4 +1,4 @@
-#include "../C++Plot/Plot2D.hpp"
+#include "../../C++Plot/Plot2D.hpp"
 
 int main()
 {
