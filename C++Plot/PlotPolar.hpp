@@ -23,14 +23,46 @@ class PlotPolarData
     public:
         dVec rs;
         dVec thetas;
-        double pointsRadius;
-        double pointsColor;
-        std::string pointsLabel;
+        bool pointsFill=false;
+        double pointsBorderWidth=1.0;
+        double pointsRadius=5.0;
+        double pointsBorderOpacity=1.0;
+        double pointsFillOpacity=1.0;
+        std::string pointsBorderColor="#000000";
+        std::string pointsFillColor="#0000ff";
+        std::string pointsLabel="";
+        PlotPolarData(const dVec& r,const dVec& t, bool pf=false, double pbw=1.0, double pr=5.0, double pbo=1.0, double pfo=1.0, size_t pbcr=0, size_t pbcg=0, size_t pbcb=0, size_t pfcr=0, size_t pfcg=0, size_t pfcb=255,  std::string label="")
+        : rs(r), thetas(t), pointsFill(pf), pointsBorderWidth(pbw), pointsRadius(pr), pointsBorderOpacity(pbo), pointsFillOpacity(pfo), pointsLabel(label)
+        {
+            // Border Color
+            if ( (pbcr<256) && (pbcg<256) && (pbcb<256) )
+            {
+                pointsBorderColor = "#"+((pbcr<16) ? "0"+std::format("{:x}",pbcr) : std::format("{:x}",pbcr))
+                    +((pbcg<16) ? "0"+std::format("{:x}",pbcg) : std::format("{:x}",pbcg))
+                    +((pbcb<16) ? "0"+std::format("{:x}",pbcb) : std::format("{:x}",pbcb));
+            }
+            else
+            {
+                std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to black points' border...";
+            }
+            // Fill Color
+            if ( (pbcr<256) && (pbcg<256) && (pbcb<256) )
+            {
+                pointsFillColor = "#"+((pfcr<16) ? "0"+std::format("{:x}",pfcr) : std::format("{:x}",pfcr))
+                    +((pfcg<16) ? "0"+std::format("{:x}",pfcg) : std::format("{:x}",pfcg))
+                    +((pfcb<16) ? "0"+std::format("{:x}",pfcb) : std::format("{:x}",pfcb));
+            }
+            else
+            {
+                std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to blue points' fill...";
+            }
+        }
 };
 
 class PlotPolar
 {
     private:
+        Vec<PlotPolarData> plotData;
         double epsilon = 1.0e-10;
         double width = 1000.0;
         dVec rVals;
@@ -113,6 +145,20 @@ class PlotPolar
             drawW = width - 2*padding;
             rScale = 0.5 * drawW / rRange;
         };
+        inline void addData(const dVec& r, const dVec& t, bool pf, double pbw=1.0, double pr=5.0, double pbo=1.0, double pfo=1.0, double pbcr=0, double pbcg=0, double pbcb=0, double pfcr=0, double pfcg=0, double pfcb=255, std::string label="")
+        {
+            if ( r.empty() )
+                throw std::runtime_error("Values of Rs are empty!");
+            if ( r.size() != t.size() )
+                throw std::runtime_error("Rs, and Thetas don't match in size!");
+            PlotPolarData ppd(r,t,pf,pbw,pr,pbo,pfo,pbcr,pbcg,pbcb,pfcr,pfcg,pfcb,label);
+            plotData.push_back(ppd);
+            double rMinLocal = *std::min_element(rVals.begin(),rVals.end());
+            double rMaxLocal = *std::max_element(rVals.begin(),rVals.end());
+            double rRangeLocal = (std::abs(rMinLocal)<=std::abs(rMaxLocal)) ? std::abs(rMaxLocal) : std::abs(rMinLocal);
+            rRange = (rRangeLocal<=rRange) ? rRange : rRangeLocal;
+            rScale = 0.5 * drawW / rRange;
+        }
         inline void forceRMax(double rm)
         {
             rMax = std::abs(rm);
@@ -435,32 +481,141 @@ inline void PlotPolar::plotSVG(std::string filename)
     }
 
     // Plot
-    file << " \n";
-    if ( PlotPolar::plotPointsFill )
+    if ( rVals.empty() )
     {
-        for ( size_t i=0; i<rVals.size(); ++i )
+        if ( plotData.empty() )
         {
-            file << " <circle cx=\"" << PlotPolar::toPixelX(PlotPolar::rttox(rVals[i],thetaVals[i]))
-                << "\" cy=\"" << PlotPolar::toPixelY(PlotPolar::rttoy(rVals[i],thetaVals[i]))
-                << "\" r=\"" << PlotPolar::plotPointsRadius
-                << "\" stroke=\"" << PlotPolar::plotPointsBorderColor
-                << "\" stroke-opacity=\"" << PlotPolar::plotPointsBorderOpacity
-                << "\" stroke-width=\"" << PlotPolar::plotPointsBorderWidth
-                << "\" fill=\"" << PlotPolar::plotPointsFillColor
-                << "\" fill-opacity=\"" << PlotPolar::plotPointsFillOpacity
-                << "\" />\n";
+            std::cout << "Nothing to plot!\n";
+        }
+        else
+        {
+            for ( auto pd : plotData)
+            {
+                file << " \n";
+                if ( pd.pointsFill )
+                {
+                    for ( size_t i=0; i<pd.rs.size(); ++i )
+                    {
+                        file << " <circle cx=\"" << PlotPolar::toPixelX(PlotPolar::rttox(pd.rs[i],pd.thetas[i]))
+                            << "\" cy=\"" << PlotPolar::toPixelY(PlotPolar::rttoy(pd.rs[i],pd.thetas[i]))
+                            << "\" r=\"" << pd.pointsRadius
+                            << "\" stroke=\"" << pd.pointsBorderColor
+                            << "\" stroke-opacity=\"" << pd.pointsBorderOpacity
+                            << "\" stroke-width=\"" << pd.pointsBorderWidth
+                            << "\" fill=\"" << pd.pointsFillColor
+                            << "\" fill-opacity=\"" << pd.pointsFillOpacity
+                            << "\" />\n";
+                    }
+                }
+                else
+                {
+                    for ( size_t i=0; i<rVals.size(); ++i )
+                    {
+                        file << " <circle cx=\"" << PlotPolar::toPixelX(PlotPolar::rttox(pd.rs[i],pd.thetas[i]))
+                            << "\" cy=\"" << PlotPolar::toPixelY(PlotPolar::rttoy(pd.rs[i],pd.thetas[i]))
+                            << "\" r=\"" << pd.pointsRadius
+                            << "\" stroke=\"" << pd.pointsBorderColor
+                            << "\" stroke-opacity=\"" << pd.pointsBorderOpacity
+                            << "\" fill=\"none\" stroke-width=\"" << pd.pointsBorderWidth << "\" />\n";
+                    }
+                }
+            }
         }
     }
     else
     {
-        for ( size_t i=0; i<rVals.size(); ++i )
+        if ( plotData.empty() )
         {
-            file << " <circle cx=\"" << PlotPolar::toPixelX(PlotPolar::rttox(rVals[i],thetaVals[i]))
-                << "\" cy=\"" << PlotPolar::toPixelY(PlotPolar::rttoy(rVals[i],thetaVals[i]))
-                << "\" r=\"" << PlotPolar::plotPointsRadius
-                << "\" stroke=\"" << PlotPolar::plotPointsBorderColor
-                << "\" stroke-opacity=\"" << PlotPolar::plotPointsBorderOpacity
-                << "\" fill=\"none\" stroke-width=\"" << PlotPolar::plotPointsBorderWidth << "\" />\n";
+            file << " \n";
+            if ( PlotPolar::plotPointsFill )
+            {
+                for ( size_t i=0; i<rVals.size(); ++i )
+                {
+                    file << " <circle cx=\"" << PlotPolar::toPixelX(PlotPolar::rttox(rVals[i],thetaVals[i]))
+                        << "\" cy=\"" << PlotPolar::toPixelY(PlotPolar::rttoy(rVals[i],thetaVals[i]))
+                        << "\" r=\"" << PlotPolar::plotPointsRadius
+                        << "\" stroke=\"" << PlotPolar::plotPointsBorderColor
+                        << "\" stroke-opacity=\"" << PlotPolar::plotPointsBorderOpacity
+                        << "\" stroke-width=\"" << PlotPolar::plotPointsBorderWidth
+                        << "\" fill=\"" << PlotPolar::plotPointsFillColor
+                        << "\" fill-opacity=\"" << PlotPolar::plotPointsFillOpacity
+                        << "\" />\n";
+                }
+            }
+            else
+            {
+                for ( size_t i=0; i<rVals.size(); ++i )
+                {
+                    file << " <circle cx=\"" << PlotPolar::toPixelX(PlotPolar::rttox(rVals[i],thetaVals[i]))
+                        << "\" cy=\"" << PlotPolar::toPixelY(PlotPolar::rttoy(rVals[i],thetaVals[i]))
+                        << "\" r=\"" << PlotPolar::plotPointsRadius
+                        << "\" stroke=\"" << PlotPolar::plotPointsBorderColor
+                        << "\" stroke-opacity=\"" << PlotPolar::plotPointsBorderOpacity
+                        << "\" fill=\"none\" stroke-width=\"" << PlotPolar::plotPointsBorderWidth << "\" />\n";
+                }
+            }
+        }
+        else
+        {
+            file << " \n";
+            if ( PlotPolar::plotPointsFill )
+            {
+                for ( size_t i=0; i<rVals.size(); ++i )
+                {
+                    file << " <circle cx=\"" << PlotPolar::toPixelX(PlotPolar::rttox(rVals[i],thetaVals[i]))
+                        << "\" cy=\"" << PlotPolar::toPixelY(PlotPolar::rttoy(rVals[i],thetaVals[i]))
+                        << "\" r=\"" << PlotPolar::plotPointsRadius
+                        << "\" stroke=\"" << PlotPolar::plotPointsBorderColor
+                        << "\" stroke-opacity=\"" << PlotPolar::plotPointsBorderOpacity
+                        << "\" stroke-width=\"" << PlotPolar::plotPointsBorderWidth
+                        << "\" fill=\"" << PlotPolar::plotPointsFillColor
+                        << "\" fill-opacity=\"" << PlotPolar::plotPointsFillOpacity
+                        << "\" />\n";
+                }
+            }
+            else
+            {
+                for ( size_t i=0; i<rVals.size(); ++i )
+                {
+                    file << " <circle cx=\"" << PlotPolar::toPixelX(PlotPolar::rttox(rVals[i],thetaVals[i]))
+                        << "\" cy=\"" << PlotPolar::toPixelY(PlotPolar::rttoy(rVals[i],thetaVals[i]))
+                        << "\" r=\"" << PlotPolar::plotPointsRadius
+                        << "\" stroke=\"" << PlotPolar::plotPointsBorderColor
+                        << "\" stroke-opacity=\"" << PlotPolar::plotPointsBorderOpacity
+                        << "\" fill=\"none\" stroke-width=\"" << PlotPolar::plotPointsBorderWidth << "\" />\n";
+                }
+            }
+            for ( auto pd : plotData)
+            {
+                file << " \n";
+                if ( pd.pointsFill )
+                {
+                    for ( size_t i=0; i<pd.rs.size(); ++i )
+                    {
+                        file << " <circle cx=\"" << PlotPolar::toPixelX(PlotPolar::rttox(pd.rs[i],pd.thetas[i]))
+                            << "\" cy=\"" << PlotPolar::toPixelY(PlotPolar::rttoy(pd.rs[i],pd.thetas[i]))
+                            << "\" r=\"" << pd.pointsRadius
+                            << "\" stroke=\"" << pd.pointsBorderColor
+                            << "\" stroke-opacity=\"" << pd.pointsBorderOpacity
+                            << "\" stroke-width=\"" << pd.pointsBorderWidth
+                            << "\" fill=\"" << pd.pointsFillColor
+                            << "\" fill-opacity=\"" << pd.pointsFillOpacity
+                            << "\" />\n";
+                    }
+                }
+                else
+                {
+                    for ( size_t i=0; i<rVals.size(); ++i )
+                    {
+                        file << " <circle cx=\"" << PlotPolar::toPixelX(PlotPolar::rttox(pd.rs[i],pd.thetas[i]))
+                            << "\" cy=\"" << PlotPolar::toPixelY(PlotPolar::rttoy(pd.rs[i],pd.thetas[i]))
+                            << "\" r=\"" << pd.pointsRadius
+                            << "\" stroke=\"" << pd.pointsBorderColor
+                            << "\" stroke-opacity=\"" << pd.pointsBorderOpacity
+                            << "\" fill=\"none\" stroke-width=\"" << pd.pointsBorderWidth << "\" />\n";
+                    }
+                }
+            }
         }
     }
     // Write Title

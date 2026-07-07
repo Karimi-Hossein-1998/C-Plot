@@ -16,6 +16,14 @@ int main()
         ts.push_back(2*PI*(urd(re19937)-0.5));
     }
     PlotPolar plot(rs,ts, 1100, 150, 50, 8.0, 6.0);
+    rs = {};
+    ts = {};
+    for( size_t i=0; i<200; ++i )
+    {
+        rs.push_back(1.0);
+        ts.push_back(PI*0.5*urd(re19937));
+    }
+    plot.addData(rs,ts,true,1.0,5.0,0.8,0.7,0,0,0,127,127,255,"");
     plot.forceRMax(1.0);
     plot.setnumRDivisions(4);
     plot.setnumThetaDivisions(12);
@@ -37,8 +45,8 @@ int main()
     plot.setplotPointsFill(true);
     plot.setplotPointsBorderWidth(3);
     plot.setplotPointsRadius(5);
-    plot.setplotPointsBorderOpacity(0.9);
-    plot.setplotPointsFillOpacity(0.8);
+    plot.setplotPointsBorderOpacity(1.0);
+    plot.setplotPointsFillOpacity(1.0);
     plot.setplotPointsBorderColor(0,0,0);
     plot.setplotPointsFillColor(255,127,127);
 
