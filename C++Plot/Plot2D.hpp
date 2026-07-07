@@ -433,7 +433,6 @@ class Plot2D
             xScale = (std::abs(xRange) > epsilon)? (drawW/xRange) : 1.0;
             yAxisVisible = ((xMax>0) && (xMin<=0)) || ((xMax>=0) && (xMin<0));
         }
-        // Plot
         inline void forceYMinMax(double yMin_, double yMax_)
         {
             double epsilon = 1.0e-10;

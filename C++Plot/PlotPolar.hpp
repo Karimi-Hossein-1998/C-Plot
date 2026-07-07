@@ -56,21 +56,27 @@ class PlotPolar
         double gBottom;
         bool border=true;
         double borderLineWidth = 2.5;
+        std::string borderLineColor = "#000000";
         double axisLineWidth = 1.5;
+        std::string axisLineColor = "#000000";
         double gridLineWidth = 0.5;
+        std::string gridLineColor = "#101010";
+        bool plotNumerals = false;
         size_t plotNumeralsSignificantDigits = 3;
         double plotNumeralsFontSize = 15;
-        double plotPointsBorderWidth = 1.5;
+        std::string plotNumeralsColor = "#3f003f";
+        bool plotTitle = false;
+        double plotTitleFontSize = 36;
+        std::string plotTitleText = "Title!";
+        std::string plotTitleColor = "#000000";
         bool plotPointsFill = true;
+        double plotPointsBorderWidth = 1.5;
         double plotPointsRadius = 5;
+        double plotPointsBorderOpacity = 1.0;
+        double plotPointsFillOpacity = 1.0;
         std::string plotPointsBorderColor = "#000000";
         std::string plotPointsFillColor = "#0000ff";
-        std::string plotNumeralsColor = "#3f003f";
         std::string backColor = "#ffffff";
-        std::string borderColor = "#000000";
-        std::string axisColor = "#000000";
-        std::string gridColor = "#101010";
-        std::string plotTitleColor = "#000000";
         inline double calcRDivisionsStep()
         {
             double rawStep  = rRange / numRDivisions;
@@ -90,6 +96,7 @@ class PlotPolar
         inline double rttox(double r, double t) { return r*cos(t); };
         inline double rttoy(double r, double t) { return r*sin(t); };
         inline void writeNumerals(std::ofstream& file);
+        inline void writeplotTitle(std::ofstream& file);
     public:
         PlotPolar(dVec rs, dVec thetas, double w = 1000.0, double pad = 100.0, double ppad = 10.0, size_t nrd = 5, size_t ntd = 12)
         : rVals(rs), thetaVals(thetas), width(w), padding(pad), plotPad(ppad), numRDivisions(nrd), numThetaDivisions(ntd)
@@ -113,6 +120,133 @@ class PlotPolar
             rScale = 0.5 * drawW / rRange;
         }
         inline void plotSVG(std::string filename);
+
+        inline void setnumRDivisions(size_t nrd=5) {numRDivisions=nrd;};
+        inline void setnumThetaDivisions(size_t ntd=8) {numThetaDivisions=ntd;};
+        inline void setplotPad(double pp) {plotPad=pp;};
+        inline void setbackColor(size_t R, size_t G, size_t B)
+        {
+            if ( (R<256) && (G<256) && (B<256) )
+            {
+                backColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
+                    +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
+                    +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
+            }
+            else
+            {
+                std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to white background...";
+            }
+        };
+        inline void setplotTitle(bool title_) {plotTitle=title_;};
+        inline void setplotTitleFontSize(double ptfs) {plotTitleFontSize=ptfs;};
+        inline void setplotTitleText(std::string titletext) {plotTitleText=titletext;};
+        inline void setplotTitleColor(size_t R, size_t G, size_t B)
+        {
+            if ( (R<256) && (G<256) && (B<256) )
+            {
+                plotTitleColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
+                    +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
+                    +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
+            }
+            else
+            {
+                std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to black plot title...";
+            }
+        };
+        inline void setborder(bool border_) {border=border_;};
+        inline void setborderLineWidth(double blw) {borderLineWidth=blw;};
+        inline void setborderLineColor(size_t R, size_t G, size_t B)
+        {
+            if ( (R<256) && (G<256) && (B<256) )
+            {
+                borderLineColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
+                    +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
+                    +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
+            }
+            else
+            {
+                std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to black borders...";
+            }
+        };
+        inline void setaxisLineWidth(double alw) {axisLineWidth=alw;};
+        inline void setaxisLineColor(size_t R, size_t G, size_t B)
+        {
+            if ( (R<256) && (G<256) && (B<256) )
+            {
+                axisLineColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
+                    +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
+                    +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
+            }
+            else
+            {
+                std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to black axes lines...";
+            }
+        };
+        inline void setgridLineWidth(double glw) {gridLineWidth=glw;};
+        inline void setgridLineColor(size_t R, size_t G, size_t B)
+        {
+            if ( (R<256) && (G<256) && (B<256) )
+            {
+                gridLineColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
+                    +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
+                    +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
+            }
+            else
+            {
+                std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to gray grid lines...";
+            }
+        };
+        inline void setplotNumerals(bool pn) {plotNumerals=pn;};
+        inline void setplotNumeralsFontSize(double pnfs) {plotNumeralsFontSize=pnfs;};
+        inline void setplotNumeralsSignificantDigits(size_t pnsd) {plotNumeralsSignificantDigits=pnsd;};
+        inline void setplotNumeralsColor(size_t R, size_t G, size_t B)
+        {
+            if ( (R<256) && (G<256) && (B<256) )
+            {
+                plotNumeralsColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
+                    +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
+                    +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
+            }
+            else
+            {
+                std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to black numerals...";
+            }
+        };
+        inline void setplotPointsFill(bool ppf) {plotPointsFill=ppf;};
+        inline void setplotPointsBorderWidth(double ppbw) {plotPointsBorderWidth=ppbw;};
+        inline void setplotPointsRadius(double ppr) {plotPointsRadius=ppr;};
+        inline void setplotPointsBorderOpacity(double op) {plotPointsBorderOpacity=op;};
+        inline void setplotPointsFillOpacity(double op) {plotPointsFillOpacity=op;};
+        inline void setplotPointsBorderColor(size_t R, size_t G, size_t B)
+        {
+            if ( (R<256) && (G<256) && (B<256) )
+            {
+                plotPointsBorderColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
+                    +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
+                    +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
+            }
+            else
+            {
+                std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to black plot points border...";
+            }
+        };
+        inline void setplotPointsFillColor(size_t R, size_t G, size_t B)
+        {
+            if ( (R<256) && (G<256) && (B<256) )
+            {
+                plotPointsFillColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
+                    +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
+                    +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
+            }
+            else
+            {
+                std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to blue plot points fill...";
+            }
+        };
+        // inline void setplotLegend(bool pl) {plotLegend=pl;};
+        // inline void setplotLineLabel(std::string pll) {plotLineLabel=pll;};
+        // inline void setlegendPos(LegendPos lp) {legendPos=lp;};
+        // inline void setlegendFontSize(double lfs) {legendFontSize=lfs;};
 };
 
 inline void PlotPolar::writeNumerals(std::ofstream& file)
@@ -210,6 +344,16 @@ inline void PlotPolar::writeNumerals(std::ofstream& file)
     file << " </g>\n";
 }
 
+inline void PlotPolar::writeplotTitle(std::ofstream& file)
+{
+    file << " <g font-family=\"sans-serif\" font-size=\"" << PlotPolar::plotTitleFontSize
+         << "\" fill=\"" << PlotPolar::plotTitleColor << "\">\n";
+    file << "   <text x=\"" << PlotPolar::width / 2.0 << "\" y=\"" << PlotPolar::plotTitleFontSize+10.0
+        << "\" text-anchor=\"middle\" dominant-baseline=\"hanging\" font-weight=\"bold\">"
+        << PlotPolar::plotTitleText << "</text>\n";
+    file << " </g>\n";
+}
+
 inline void PlotPolar::plotSVG(std::string filename)
 {
     std::ofstream file(filename, std::ios::trunc);
@@ -247,7 +391,7 @@ inline void PlotPolar::plotSVG(std::string filename)
         file << " <rect x=\"" << PlotPolar::gLeft-PlotPolar::plotPad << "\" y=\"" << PlotPolar::gTop-PlotPolar::plotPad
              << "\" width=\"" << (PlotPolar::gRight-PlotPolar::gLeft+2*PlotPolar::plotPad)
              << "\" height=\"" << (PlotPolar::gBottom-PlotPolar::gTop+2*PlotPolar::plotPad)
-             << "\" fill=\"none\" stroke=\"" << PlotPolar::borderColor << "\" stroke-width=\"" << PlotPolar::borderLineWidth << "\" />\n";
+             << "\" fill=\"none\" stroke=\"" << PlotPolar::borderLineColor << "\" stroke-width=\"" << PlotPolar::borderLineWidth << "\" />\n";
     }
     // Drawing xAxis
     file << " \n";
@@ -257,7 +401,7 @@ inline void PlotPolar::plotSVG(std::string filename)
     double xAxisY2 = PlotPolar::toPixelY(0.0);
     // file << " <line x1=\"" << xAxisX1 << "\" y1=\"" << xAxisY1
     //     << "\" x2=\"" << xAxisX2 << "\" y2=\"" << xAxisY2
-    //     << "\" stroke=\"" << PlotPolar::axisColor << "\" stroke-width=\"" << PlotPolar::axisLineWidth << "\" stroke-linecap=\"round\" />\n";
+    //     << "\" stroke=\"" << PlotPolar::axisLineColor << "\" stroke-width=\"" << PlotPolar::axisLineWidth << "\" stroke-linecap=\"round\" />\n";
     // Drawing yAxis
     double yAxisX1 = PlotPolar::toPixelX(0.0);
     double yAxisX2 = PlotPolar::toPixelX(0.0);
@@ -265,27 +409,30 @@ inline void PlotPolar::plotSVG(std::string filename)
     double yAxisY2 = PlotPolar::gTop;
     // file << " <line x1=\"" << yAxisX1 << "\" y1=\"" << yAxisY1
     //     << "\" x2=\"" << yAxisX2 << "\" y2=\"" << yAxisY2
-    //     << "\" stroke=\"" << PlotPolar::axisColor << "\" stroke-width=\"" << PlotPolar::axisLineWidth << "\" stroke-linecap=\"round\" />\n";
+    //     << "\" stroke=\"" << PlotPolar::axisLineColor << "\" stroke-width=\"" << PlotPolar::axisLineWidth << "\" stroke-linecap=\"round\" />\n";
     // Drawing the grid
     for ( double r : PlotPolar::divisionsR )
     {
         file << " <circle cx=\"" << yAxisX1 << "\" cy=\"" << xAxisY1
-            << "\" r=\"" << r*rScale << "\" stroke=\"" << PlotPolar::gridColor
+            << "\" r=\"" << r*rScale << "\" stroke=\"" << PlotPolar::gridLineColor
             << "\" fill=\"none\" stroke-width=\"" << PlotPolar::gridLineWidth << "\" />\n";
     }
     // file << " <circle cx=\"" << yAxisX1 << "\" cy=\"" << xAxisY1
-    //     << "\" r=\"" << divisionsR[divisionsR.size()-1]*rScale << "\" stroke=\"" << PlotPolar::axisColor
+    //     << "\" r=\"" << divisionsR[divisionsR.size()-1]*rScale << "\" stroke=\"" << PlotPolar::axisLineColor
     //     << "\" fill=\"none\" stroke-width=\"" << PlotPolar::axisLineWidth << "\" />\n";
     for ( double t : divisionsTheta )
     {
         file << " <line x1=\"" << yAxisX1 << "\" y1=\"" << xAxisY1
             << "\" x2=\"" << PlotPolar::toPixelX(PlotPolar::rttox(rRange,t))
             << "\" y2=\"" << PlotPolar::toPixelY(PlotPolar::rttoy(rRange,t))
-            << "\" stroke=\"" << PlotPolar::gridColor
+            << "\" stroke=\"" << PlotPolar::gridLineColor
             << "\" stroke-width=\"" << PlotPolar::gridLineWidth << "\" stroke-linecap=\"round\" />\n";
     }
     // Writing Numbers
-    PlotPolar::writeNumerals(file);
+    if ( PlotPolar::plotNumerals )
+    {
+        PlotPolar::writeNumerals(file);
+    }
 
     // Plot
     file << " \n";
@@ -297,8 +444,11 @@ inline void PlotPolar::plotSVG(std::string filename)
                 << "\" cy=\"" << PlotPolar::toPixelY(PlotPolar::rttoy(rVals[i],thetaVals[i]))
                 << "\" r=\"" << PlotPolar::plotPointsRadius
                 << "\" stroke=\"" << PlotPolar::plotPointsBorderColor
+                << "\" stroke-opacity=\"" << PlotPolar::plotPointsBorderOpacity
+                << "\" stroke-width=\"" << PlotPolar::plotPointsBorderWidth
                 << "\" fill=\"" << PlotPolar::plotPointsFillColor
-                << "\" stroke-width=\"" << PlotPolar::plotPointsBorderWidth << "\" />\n";
+                << "\" fill-opacity=\"" << PlotPolar::plotPointsFillOpacity
+                << "\" />\n";
         }
     }
     else
@@ -309,8 +459,14 @@ inline void PlotPolar::plotSVG(std::string filename)
                 << "\" cy=\"" << PlotPolar::toPixelY(PlotPolar::rttoy(rVals[i],thetaVals[i]))
                 << "\" r=\"" << PlotPolar::plotPointsRadius
                 << "\" stroke=\"" << PlotPolar::plotPointsBorderColor
+                << "\" stroke-opacity=\"" << PlotPolar::plotPointsBorderOpacity
                 << "\" fill=\"none\" stroke-width=\"" << PlotPolar::plotPointsBorderWidth << "\" />\n";
         }
+    }
+    // Write Title
+    if ( PlotPolar::plotTitle )
+    {
+        writeplotTitle(file);
     }
     // End
     file << "</svg>\n";
