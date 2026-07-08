@@ -941,7 +941,6 @@ inline void Plot2D::drawLegend(std::ofstream& file)
         }
     }
 
-    std::cout << "Position adjustment!\n";
     double legendX = 0.0;
     double legendY = 0.0;
     switch ( Plot2D::legendPos )
@@ -1019,7 +1018,6 @@ inline void Plot2D::drawLegend(std::ofstream& file)
                     << pd.lineLabel << "</text>\n";
                 counter += 1;
             }
-            std::cout << "Legend drawn!\n";
         }
     }
     else
@@ -1058,7 +1056,6 @@ inline void Plot2D::drawLegend(std::ofstream& file)
                 << "\" fill=\"" << Plot2D::plotLineColor
                 << "\" text-anchor=\"middle\" dominant-baseline=\"central\">"
                 << Plot2D::plotLineLabel << "</text>\n";
-            std::cout << "Legend drawn!\n";
         }
         else
         {
@@ -1133,7 +1130,6 @@ inline void Plot2D::drawLegend(std::ofstream& file)
                     << pd.lineLabel << "</text>\n";
                 counter += 1;
             }
-            std::cout << "Legend drawn!\n";
         }
     }
 }

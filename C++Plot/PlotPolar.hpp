@@ -18,6 +18,70 @@ using Point = std::pair<double, double>;
 
 constexpr double PI = 3.141592653589793; // \pi
 
+double estimateStringWidth(const std::string& text, double fontsize)
+{
+    std::string text_ = text;
+    size_t pos = 0;
+
+    // --- First loop: Replace HTML entities like &#XXXX; with '^' ---
+    while (true)
+    {
+        size_t startPos = text_.find("&#", pos);
+        if (startPos == std::string::npos) {
+            break; // No more "&#" sequences found, exit loop
+        }
+
+        size_t endPos = text_.find(";", startPos); // Search for ';' AFTER the found "&#"
+        if (endPos != std::string::npos)
+        {
+            // Found a complete "&#...;" sequence
+            text_.replace(startPos, endPos - startPos + 1, "^");
+            // Advance 'pos' to continue searching immediately after the replacement
+            pos = startPos + 1; // '^' is 1 character long
+        }
+        else
+        {
+            // Found "&#" but no matching ";". To prevent an infinite loop,
+            // advance 'pos' past the found "&#" and continue searching.
+            pos = startPos + 2;
+        }
+    }
+
+    // --- Second loop: Replace "&amp;" with '&' ---
+    pos = 0; // Reset position for the new search
+    while (true)
+    {
+        size_t startPos = text_.find("&amp;", pos);
+        if (startPos == std::string::npos) {
+            break; // No more "&amp;" sequences found, exit loop
+        }
+        // Found "&amp;"
+        text_.replace(startPos, 5, "&"); // " &amp;" is 5 characters long
+        // Advance 'pos' to continue searching immediately after the replacement
+        pos = startPos + 1; // '&' is 1 character long
+    }
+
+    // --- Character width estimation (this part seems fine) ---
+    double totalRelativeWidth = 0.0;
+    for ( auto c : text_ )
+    {
+        if (std::strchr("lij|' !.,;:()[]{}",c)!=nullptr) totalRelativeWidth += 0.3;
+        else if (std::strchr("fzrstc-+^",c)!=nullptr) totalRelativeWidth += 0.4;
+        else if (std::strchr("WwMmOQG%&",c)!=nullptr) totalRelativeWidth += 0.9;
+        else if (std::isupper(static_cast<unsigned char>(c))) totalRelativeWidth += 0.7;
+        else totalRelativeWidth += 0.6;
+    }
+    return totalRelativeWidth*fontsize;
+}
+
+enum class LegendPos
+{
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight
+};
+
 class PlotPolarData
 {
     public:
@@ -108,6 +172,10 @@ class PlotPolar
         double plotPointsFillOpacity = 1.0;
         std::string plotPointsBorderColor = "#000000";
         std::string plotPointsFillColor = "#0000ff";
+        std::string plotPointsLabel = "";
+        bool plotLegend = false;
+        LegendPos legendPos = LegendPos::TopLeft;
+        double legendFontSize = 12;
         std::string backColor = "#ffffff";
         inline double calcRDivisionsStep()
         {
@@ -129,7 +197,29 @@ class PlotPolar
         inline double rttoy(double r, double t) { return r*sin(t); };
         inline void writeNumerals(std::ofstream& file);
         inline void writeplotTitle(std::ofstream& file);
+        inline void drawLegend(std::ofstream& file);
     public:
+        PlotPolar(const Vec<PlotPolarData>& data, double w=1000.0, double pad=100.0, double ppad = 50.0, size_t nrd = 5, size_t ntd = 12)
+        : width(w), padding(pad), plotPad(ppad), numRDivisions(nrd), numThetaDivisions(ntd)
+        {
+            if ( width<=2*padding )
+                throw std::runtime_error("Padding is too large! It exceeds width!");
+            for ( auto pd : data )
+            {
+                rRange = 0.0;
+                if ( rVals.empty() )
+                    throw std::runtime_error("Values of Rs are empty!");
+                if ( rVals.size() != thetaVals.size() )
+                    throw std::runtime_error("Rs, and Thetas don't match in size!");
+                double rMinLocal = *std::min_element(pd.rs.begin(),pd.rs.end());
+                double rMaxLocal = *std::max_element(pd.rs.begin(),pd.rs.end());
+                double rRangeLocal = (std::abs(rMinLocal)<=std::abs(rMaxLocal)) ? std::abs(rMaxLocal) : std::abs(rMinLocal);
+                rRange = (rRangeLocal<=rRange) ? rRange : rRangeLocal;
+                plotData.push_back(pd);
+            }
+            drawW = width - 2*padding;
+            rScale = 0.5 * drawW / rRange;
+        }
         PlotPolar(dVec rs, dVec thetas, double w = 1000.0, double pad = 100.0, double ppad = 10.0, size_t nrd = 5, size_t ntd = 12)
         : rVals(rs), thetaVals(thetas), width(w), padding(pad), plotPad(ppad), numRDivisions(nrd), numThetaDivisions(ntd)
         {
@@ -153,10 +243,26 @@ class PlotPolar
                 throw std::runtime_error("Rs, and Thetas don't match in size!");
             PlotPolarData ppd(r,t,pf,pbw,pr,pbo,pfo,pbcr,pbcg,pbcb,pfcr,pfcg,pfcb,label);
             plotData.push_back(ppd);
-            double rMinLocal = *std::min_element(rVals.begin(),rVals.end());
-            double rMaxLocal = *std::max_element(rVals.begin(),rVals.end());
+            double rMinLocal = *std::min_element(r.begin(),r.end());
+            double rMaxLocal = *std::max_element(r.begin(),r.end());
             double rRangeLocal = (std::abs(rMinLocal)<=std::abs(rMaxLocal)) ? std::abs(rMaxLocal) : std::abs(rMinLocal);
             rRange = (rRangeLocal<=rRange) ? rRange : rRangeLocal;
+            rScale = 0.5 * drawW / rRange;
+        }
+        inline void addMultipleData(const Vec<PlotPolarData>& data)
+        {
+            for ( auto pd : data )
+            {
+                if ( pd.rs.empty() )
+                    throw std::runtime_error("Values of Rs are empty!");
+                if ( pd.rs.size() != pd.thetas.size() )
+                    throw std::runtime_error("Rs, and Thetas don't match in size!");
+                plotData.push_back(pd);
+                double rMinLocal = *std::min_element(pd.rs.begin(),pd.rs.end());
+                double rMaxLocal = *std::max_element(pd.rs.begin(),pd.rs.end());
+                double rRangeLocal = (std::abs(rMinLocal)<=std::abs(rMaxLocal)) ? std::abs(rMaxLocal) : std::abs(rMinLocal);
+                rRange = (rRangeLocal<=rRange) ? rRange : rRangeLocal;
+            }
             rScale = 0.5 * drawW / rRange;
         }
         inline void forceRMax(double rm)
@@ -165,6 +271,7 @@ class PlotPolar
             rRange = rMax;
             rScale = 0.5 * drawW / rRange;
         }
+
         inline void plotSVG(std::string filename);
 
         inline void setnumRDivisions(size_t nrd=5) {numRDivisions=nrd;};
@@ -289,10 +396,10 @@ class PlotPolar
                 std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to blue plot points fill...";
             }
         };
-        // inline void setplotLegend(bool pl) {plotLegend=pl;};
-        // inline void setplotLineLabel(std::string pll) {plotLineLabel=pll;};
-        // inline void setlegendPos(LegendPos lp) {legendPos=lp;};
-        // inline void setlegendFontSize(double lfs) {legendFontSize=lfs;};
+        inline void setplotPointsLabel(std::string ppl) {plotPointsLabel=ppl;};
+        inline void setplotLegend(bool pl) {plotLegend=pl;};
+        inline void setlegendPos(LegendPos lp) {legendPos=lp;};
+        inline void setlegendFontSize(double lfs) {legendFontSize=lfs;};
 };
 
 inline void PlotPolar::writeNumerals(std::ofstream& file)
@@ -398,6 +505,219 @@ inline void PlotPolar::writeplotTitle(std::ofstream& file)
         << "\" text-anchor=\"middle\" dominant-baseline=\"hanging\" font-weight=\"bold\">"
         << PlotPolar::plotTitleText << "</text>\n";
     file << " </g>\n";
+}
+
+inline void PlotPolar::drawLegend(std::ofstream& file)
+{
+    double legendTopPad = 20.0;
+    double legendBottomPad = 20.0;
+    double legendLeftPad = 20.0;
+    double legendRightPad = 20.0;
+    double legendWidth = 0.0;
+    double legendHeight = 0.0;
+    if (PlotPolar::rVals.empty())
+    {
+        if (PlotPolar::plotData.empty())
+        {
+            legendWidth  = 220.0;
+            legendHeight = 220.0;
+        }
+        else
+        {
+            double currentWidth = 0.0;
+            for ( auto pd : PlotPolar::plotData)
+            {
+                double newWidth = estimateStringWidth(pd.pointsLabel,PlotPolar::legendFontSize);
+                if ( newWidth > currentWidth ) currentWidth = newWidth;
+            }
+            legendWidth  = currentWidth + 40.0;
+            legendHeight = plotData.size()*PlotPolar::legendFontSize*2.0 + 20.0;
+        }
+    }
+    else
+    {
+        if (PlotPolar::plotData.empty())
+        {
+            legendWidth  = estimateStringWidth(PlotPolar::plotPointsLabel,PlotPolar::legendFontSize) + 40.0;
+            legendHeight = PlotPolar::legendFontSize*2.0 + 20.0;
+        }
+        else
+        {
+            double currentWidth = estimateStringWidth(PlotPolar::plotPointsLabel,PlotPolar::legendFontSize);
+            for ( auto pd : PlotPolar::plotData)
+            {
+                double newWidth = estimateStringWidth(pd.pointsLabel,PlotPolar::legendFontSize);
+                if ( newWidth > currentWidth ) currentWidth = newWidth;
+            }
+            legendWidth  = currentWidth + 40.0;
+            legendHeight = (plotData.size()+1)*PlotPolar::legendFontSize*2.0 + 20.0;
+        }
+    }
+
+    double legendX = 0.0;
+    double legendY = 0.0;
+    switch ( PlotPolar::legendPos )
+    {
+        case LegendPos::TopLeft:
+            legendX = PlotPolar::gLeft-PlotPolar::plotPad+legendLeftPad;
+            legendY = PlotPolar::gTop-PlotPolar::plotPad+legendTopPad;
+            break;
+        case LegendPos::TopRight:
+            legendX = PlotPolar::gRight+PlotPolar::plotPad-legendRightPad-legendWidth;
+            legendY = PlotPolar::gTop-PlotPolar::plotPad+legendTopPad;
+            break;
+        case LegendPos::BottomLeft:
+            legendX = PlotPolar::gLeft-PlotPolar::plotPad+legendLeftPad;
+            legendY = PlotPolar::gBottom+PlotPolar::plotPad-legendBottomPad-legendHeight;
+            break;
+        case LegendPos::BottomRight:
+            legendX = PlotPolar::gRight+PlotPolar::plotPad-legendRightPad-legendWidth;
+            legendY = PlotPolar::gBottom+PlotPolar::plotPad-legendBottomPad-legendHeight;
+            break;
+        default:
+            legendX = PlotPolar::gLeft-PlotPolar::plotPad+legendLeftPad;
+            legendY = PlotPolar::gTop-PlotPolar::plotPad+legendTopPad;
+            break;
+    }
+    double itemY = 0.0;
+    // Drawing the empty legend box
+    file << "   <rect x=\"" << legendX << "\" y=\"" << legendY
+        << "\" width=\"" << legendWidth << "\" height=\"" << legendHeight
+        << "\" fill=\"" << PlotPolar::backColor << "\" fill-opacity=\"0.75\" stroke=\"" << PlotPolar::borderLineColor
+        << "\" stroke-width=\"1\" rx=\"4\" />\n";
+    if ( PlotPolar::rVals.empty() )
+    {
+        if (PlotPolar::plotData.empty() )
+        {
+            std::cout << "Nothing to write in legend!";
+        }
+        else
+        {
+            size_t counter = 0;
+            for ( auto pd : plotData )
+            {
+                itemY = legendY + counter*PlotPolar::legendFontSize*2.0 + 10.0;
+                if ( pd.pointsFill )
+                {
+                    file << " <circle cx=\"" << legendX + 15.0 << "\" cy=\"" << itemY+PlotPolar::legendFontSize
+                        << "\" r=\"" << pd.pointsRadius
+                        << "\" stroke=\"" << pd.pointsBorderColor
+                        << "\" stroke-opacity=\"" << pd.pointsBorderOpacity
+                        << "\" stroke-width=\"" << pd.pointsBorderWidth
+                        << "\" fill=\"" << pd.pointsFillColor
+                        << "\" fill-opacity=\"" << pd.pointsFillOpacity
+                        << "\" />\n";
+                }
+                else
+                {
+                    file << " <circle cx=\"" << legendX + 15.0 << "\" cy=\"" << itemY+PlotPolar::legendFontSize
+                        << "\" r=\"" << pd.pointsRadius
+                        << "\" stroke=\"" << pd.pointsBorderColor
+                        << "\" stroke-opacity=\"" << pd.pointsBorderOpacity
+                        << "\" fill=\"none\" stroke-width=\"" << pd.pointsBorderWidth << "\" />\n";
+                }
+                file << "   <text x=\"" << legendX+legendWidth/2.0+10.0 << "\" y=\"" << itemY+1.5*PlotPolar::legendFontSize
+                    << "\" font-family=\"sans-serif\" font-size=\"" << PlotPolar::legendFontSize
+                    << "\" fill=\"" << pd.pointsBorderColor
+                    << "\" text-anchor=\"middle\" dominant-baseline=\"central\">"
+                    << pd.pointsLabel << "</text>\n";
+                counter += 1;
+            }
+        }
+    }
+    else
+    {
+        if (PlotPolar::plotData.empty())
+        {
+            std::string dashArrayAttr = "";
+            itemY = legendY + 10.0;
+            if ( PlotPolar::plotPointsFill )
+            {
+                file << " <circle cx=\"" << legendX + 15.0 << "\" cy=\"" << itemY+PlotPolar::legendFontSize
+                    << "\" r=\"" << PlotPolar::plotPointsRadius
+                    << "\" stroke=\"" << PlotPolar::plotPointsBorderColor
+                    << "\" stroke-opacity=\"" << PlotPolar::plotPointsBorderOpacity
+                    << "\" stroke-width=\"" << PlotPolar::plotPointsBorderWidth
+                    << "\" fill=\"" << PlotPolar::plotPointsFillColor
+                    << "\" fill-opacity=\"" << PlotPolar::plotPointsFillOpacity
+                    << "\" />\n";
+            }
+            else
+            {
+                file << " <circle cx=\"" << legendX + 15.0 << "\" cy=\"" << itemY+PlotPolar::legendFontSize
+                    << "\" r=\"" << PlotPolar::plotPointsRadius
+                    << "\" stroke=\"" << PlotPolar::plotPointsBorderColor
+                    << "\" stroke-opacity=\"" << PlotPolar::plotPointsBorderOpacity
+                    << "\" fill=\"none\" stroke-width=\"" << PlotPolar::plotPointsBorderWidth << "\" />\n";
+            }
+            file << "   <text x=\"" << legendX+legendWidth/2.0+10.0 << "\" y=\"" << itemY+1.5*PlotPolar::legendFontSize
+                << "\" font-family=\"sans-serif\" font-size=\"" << PlotPolar::legendFontSize
+                << "\" fill=\"" << PlotPolar::plotPointsBorderColor
+                << "\" text-anchor=\"middle\" dominant-baseline=\"central\">"
+                << PlotPolar::plotPointsLabel << "</text>\n";
+        }
+        else
+        {
+            size_t counter = 0;
+            // writing original data
+            itemY = legendY + 10.0;
+            if ( PlotPolar::plotPointsFill )
+            {
+                file << " <circle cx=\"" << legendX + 15.0 << "\" cy=\"" << itemY+PlotPolar::legendFontSize
+                    << "\" r=\"" << PlotPolar::plotPointsRadius
+                    << "\" stroke=\"" << PlotPolar::plotPointsBorderColor
+                    << "\" stroke-opacity=\"" << PlotPolar::plotPointsBorderOpacity
+                    << "\" stroke-width=\"" << PlotPolar::plotPointsBorderWidth
+                    << "\" fill=\"" << PlotPolar::plotPointsFillColor
+                    << "\" fill-opacity=\"" << PlotPolar::plotPointsFillOpacity
+                    << "\" />\n";
+            }
+            else
+            {
+                file << " <circle cx=\"" << legendX + 15.0 << "\" cy=\"" << itemY+PlotPolar::legendFontSize
+                    << "\" r=\"" << PlotPolar::plotPointsRadius
+                    << "\" stroke=\"" << PlotPolar::plotPointsBorderColor
+                    << "\" stroke-opacity=\"" << PlotPolar::plotPointsBorderOpacity
+                    << "\" fill=\"none\" stroke-width=\"" << PlotPolar::plotPointsBorderWidth << "\" />\n";
+            }
+            file << "   <text x=\"" << legendX+legendWidth/2.0+10.0 << "\" y=\"" << itemY+1.5*PlotPolar::legendFontSize
+                << "\" font-family=\"sans-serif\" font-size=\"" << PlotPolar::legendFontSize
+                << "\" fill=\"" << PlotPolar::plotPointsBorderColor
+                << "\" text-anchor=\"middle\" dominant-baseline=\"central\">"
+                << PlotPolar::plotPointsLabel << "</text>\n";
+            counter += 1;
+            // writing added data
+            for ( auto pd : plotData )
+            {
+                itemY = legendY + counter*PlotPolar::legendFontSize*2.0 + 10.0;
+                if ( pd.pointsFill )
+                {
+                    file << " <circle cx=\"" << legendX + 15.0 << "\" cy=\"" << itemY+PlotPolar::legendFontSize
+                        << "\" r=\"" << pd.pointsRadius
+                        << "\" stroke=\"" << pd.pointsBorderColor
+                        << "\" stroke-opacity=\"" << pd.pointsBorderOpacity
+                        << "\" stroke-width=\"" << pd.pointsBorderWidth
+                        << "\" fill=\"" << pd.pointsFillColor
+                        << "\" fill-opacity=\"" << pd.pointsFillOpacity
+                        << "\" />\n";
+                }
+                else
+                {
+                    file << " <circle cx=\"" << legendX + 15.0 << "\" cy=\"" << itemY+PlotPolar::legendFontSize
+                        << "\" r=\"" << pd.pointsRadius
+                        << "\" stroke=\"" << pd.pointsBorderColor
+                        << "\" stroke-opacity=\"" << pd.pointsBorderOpacity
+                        << "\" fill=\"none\" stroke-width=\"" << pd.pointsBorderWidth << "\" />\n";
+                }
+                file << "   <text x=\"" << legendX+legendWidth/2.0+10.0 << "\" y=\"" << itemY+1.5*PlotPolar::legendFontSize
+                    << "\" font-family=\"sans-serif\" font-size=\"" << PlotPolar::legendFontSize
+                    << "\" fill=\"" << pd.pointsBorderColor
+                    << "\" text-anchor=\"middle\" dominant-baseline=\"central\">"
+                    << pd.pointsLabel << "</text>\n";
+                counter += 1;
+            }
+        }
+    }
 }
 
 inline void PlotPolar::plotSVG(std::string filename)
@@ -520,6 +840,7 @@ inline void PlotPolar::plotSVG(std::string filename)
                     }
                 }
             }
+            std::cout << "Plot generated and compiled to: " << filename << '\n';
         }
     }
     else
@@ -554,6 +875,7 @@ inline void PlotPolar::plotSVG(std::string filename)
                         << "\" fill=\"none\" stroke-width=\"" << PlotPolar::plotPointsBorderWidth << "\" />\n";
                 }
             }
+            std::cout << "Plot generated and compiled to: " << filename << '\n';
         }
         else
         {
@@ -616,12 +938,18 @@ inline void PlotPolar::plotSVG(std::string filename)
                     }
                 }
             }
+            std::cout << "Plot generated and compiled to: " << filename << '\n';
         }
     }
     // Write Title
     if ( PlotPolar::plotTitle )
     {
         writeplotTitle(file);
+    }
+    if ( PlotPolar::plotLegend )
+    {
+        std::cout << "Drawing the legend!\n";
+        drawLegend(file);
     }
     // End
     file << "</svg>\n";
