@@ -233,7 +233,7 @@ enum class LineStyle
 - **Dotted:** A Series of filled circles (or dots) plotted with small gaps in between.
 - **DashDot:** An interval of line fragment, space, dot, space, repeat.
 
-## 'LegendPos` Enumeration Class
+## `LegendPos` Enumeration Class
 
 This *class* is for setting the position of the plot legend (can be placed on four corners.)
 

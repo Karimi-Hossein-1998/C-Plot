@@ -153,8 +153,8 @@ class PlotPolar
         bool border=true;
         double borderLineWidth = 2.5;
         std::string borderLineColor = "#000000";
-        double axisLineWidth = 1.5;
-        std::string axisLineColor = "#000000";
+        // double axisLineWidth = 1.5;
+        // std::string axisLineColor = "#000000";
         double gridLineWidth = 0.5;
         std::string gridLineColor = "#101010";
         bool plotNumerals = false;
@@ -321,20 +321,20 @@ class PlotPolar
                 std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to black borders...";
             }
         };
-        inline void setaxisLineWidth(double alw) {axisLineWidth=alw;};
-        inline void setaxisLineColor(size_t R, size_t G, size_t B)
-        {
-            if ( (R<256) && (G<256) && (B<256) )
-            {
-                axisLineColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
-                    +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
-                    +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
-            }
-            else
-            {
-                std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to black axes lines...";
-            }
-        };
+        // inline void setaxisLineWidth(double alw) {axisLineWidth=alw;};
+        // inline void setaxisLineColor(size_t R, size_t G, size_t B)
+        // {
+        //     if ( (R<256) && (G<256) && (B<256) )
+        //     {
+        //         axisLineColor = "#"+((R<16) ? "0"+std::format("{:x}",R) : std::format("{:x}",R))
+        //             +((G<16) ? "0"+std::format("{:x}",G) : std::format("{:x}",G))
+        //             +((B<16) ? "0"+std::format("{:x}",B) : std::format("{:x}",B));
+        //     }
+        //     else
+        //     {
+        //         std::cout << "`R`, `G`, and `B` must be integers from 0 upto 255!\nDefaulting to black axes lines...";
+        //     }
+        // };
         inline void setgridLineWidth(double glw) {gridLineWidth=glw;};
         inline void setgridLineColor(size_t R, size_t G, size_t B)
         {
