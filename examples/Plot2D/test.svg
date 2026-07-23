@@ -117,7 +117,7 @@
    
    <text x="850" y="1625" text-anchor="middle" dominant-baseline="central" font-weight="bold">X axis test!</text>
    
-   <text x="37.5" y="850" transform="rotate(-90, 37.5, 850)" text-anchor="middle" dominant-baseline="central" font-weight="bold">Y axis test!</text>
+   <text x="102.5" y="850" transform="rotate(-90, 102.5, 850)" text-anchor="middle" dominant-baseline="central" font-weight="bold">Y axis test!</text>
  </g>
  <g font-family="sans-serif" font-size="75" fill="#bf00bf">
    <text x="850" y="85" text-anchor="middle" dominant-baseline="central" font-weight="bold">Testing Title!</text>

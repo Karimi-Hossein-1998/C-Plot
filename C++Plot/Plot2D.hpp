@@ -24,7 +24,8 @@ double estimateStringWidth(const std::string& text, double fontsize)
     while (true)
     {
         size_t startPos = text_.find("&#", pos);
-        if (startPos == std::string::npos) {
+        if (startPos == std::string::npos)
+        {
             break; // No more "&#" sequences found, exit loop
         }
 
@@ -49,7 +50,8 @@ double estimateStringWidth(const std::string& text, double fontsize)
     while (true)
     {
         size_t startPos = text_.find("&amp;", pos);
-        if (startPos == std::string::npos) {
+        if (startPos == std::string::npos)
+        {
             break; // No more "&amp;" sequences found, exit loop
         }
         // Found "&amp;"
@@ -227,6 +229,8 @@ class Plot2D
             else cleanFraction = 10.0;
             return cleanFraction*std::pow(10.0,exponent);
         };
+
+        double yNumeralLongest = 0.0;
     public:
         Plot2D(const Vec<Plot2DData>& data, size_t w = 1000, size_t h = 1000, size_t pad = 100)
         {
@@ -844,6 +848,11 @@ inline void Plot2D::writeNumbers(std::ofstream& file)
             labelStr = mantissa + "&#215;10" + superscriptExp;
         }
 
+        double numeralLength = estimateStringWidth(labelStr,Plot2D::plotNumeralsFontSize);
+        if ( Plot2D::yNumeralLongest<=numeralLength )
+        {
+            Plot2D::yNumeralLongest = numeralLength;
+        }
         // Added dominant-baseline="central" to keep numbers aligned with the tick line rows
         file << "   <text x=\"" << Plot2D::gLeft - (Plot2D::tickMarkSize+Plot2D::plotPad) - Plot2D::plotNumeralsFontSize*0.5
              << "\" y=\"" << Plot2D::yTickPixelsY[i] + Plot2D::plotNumeralsFontSize/4.0
@@ -871,9 +880,19 @@ inline void Plot2D::writeAxisLabels(std::ofstream& file)
 
     // 2. Y-Axis Label: Placed to the left of the Y-axis numbers and rotated -90 degrees
     // Calculate a safe padding slot out to the left of the border box
-    double yAxisLabelX = Plot2D::gLeft - Plot2D::tickMarkSize
-                        - (1.1+Plot2D::plotNumeralsSignificantDigits)*Plot2D::plotNumeralsFontSize
-                        - Plot2D::plotAxisLabelFontSize*0.5;
+    double yAxisLabelX = 0.0;
+    if (yNumeralLongest==0)
+    {
+        yAxisLabelX = Plot2D::gLeft - Plot2D::tickMarkSize
+                    - (1.1+Plot2D::plotNumeralsSignificantDigits)*Plot2D::plotNumeralsFontSize
+                    - Plot2D::plotAxisLabelFontSize*0.5;
+    }
+    else
+    {
+        yAxisLabelX = Plot2D::gLeft - Plot2D::tickMarkSize
+                    - Plot2D::yNumeralLongest
+                    - Plot2D::plotAxisLabelFontSize*0.5;
+    }
     // double yAxisLabelX = Plot2D::gLeft - 4.0*(Plot2D::tickMarkSize + Plot2D::plotPad) + 2.0*Plot2D::plotNumeralsFontSize;
     double yAxisLabelY = Plot2D::height / 2.0; // Vertically centered on the plot wall
 
