@@ -193,8 +193,14 @@ class Plot2D
         inline double toPointX( const double x) const {return (x-padding)/xScale + xMin;};
         inline double toPointY( const double y) const {return yMin - (y-height+padding)/yScale;};
         // Plot options
+        std::string ticksString = "";
+        inline void writeTicksString();
         inline void drawTicks(std::ofstream& file);
+        std::string gridString = "";
+        inline void writeGridString();
         inline void drawGrid(std::ofstream& file);
+        std::string numbersString = "";
+        inline void writeNumbersString();
         inline void writeNumbers(std::ofstream& file);
         inline void writeAxisLabels(std::ofstream& file);
         inline void writeplotTitle(std::ofstream& file);
@@ -228,12 +234,14 @@ class Plot2D
             return cleanFraction*std::pow(10.0,exponent);
         };
     public:
-        Plot2D(const Vec<Plot2DData>& data, size_t w = 1000, size_t h = 1000, size_t pad = 100)
+        Plot2D(const Vec<Plot2DData> data, size_t w = 1000, size_t h = 1000, size_t pad = 100)
         {
             if ( data.empty() )
             {
                 throw std::runtime_error("The data is empty! You must provide at least one set of data.");
             }
+        }
+}
             plotData = data;
             width = w;
             height = h;
@@ -578,8 +586,9 @@ class Plot2D
         inline void setlegendFontSize(double lfs) {legendFontSize=lfs;};
 };
 
-inline void Plot2D::drawTicks(std::ofstream& file)
+inline void Plot2D::writeTicksString()
 {
+    std::stringstream ss;
     if ( Plot2D::autoTicks ) // Clean Tick Placing
     {
         Plot2D::xStep     = Plot2D::calcAutoXTicksStep();
@@ -593,16 +602,16 @@ inline void Plot2D::drawTicks(std::ofstream& file)
             Plot2D::yTickPixelsY.push_back(Plot2D::toPixelY(val));
         }
         // yTicks
-        file << " \n";
+        ss << " \n";
         for ( size_t i=0; i<Plot2D::yTickPointsY.size(); ++i)
         {
             if (Plot2D::yAxisVisible)
             {
-                file << " <line x1=\"" << Plot2D::toPixelX(0.0)-Plot2D::tickMarkSize/2.0 << "\" y1=\"" << Plot2D::yTickPixelsY[i]
+                ss << " <line x1=\"" << Plot2D::toPixelX(0.0)-Plot2D::tickMarkSize/2.0 << "\" y1=\"" << Plot2D::yTickPixelsY[i]
                     << "\" x2=\"" << Plot2D::toPixelX(0.0)+Plot2D::tickMarkSize/2.0 << "\" y2=\"" << Plot2D::yTickPixelsY[i]
                     << "\" stroke=\"" << Plot2D::axisLineColor << "\" stroke-width=\"" << Plot2D::axisLineWidth << "\" stroke-linecap=\"round\" />\n";
             }
-            file << " <line x1=\"" << Plot2D::gLeft-Plot2D::tickMarkSize-Plot2D::plotPad << "\" y1=\"" << Plot2D::yTickPixelsY[i]
+            ss << " <line x1=\"" << Plot2D::gLeft-Plot2D::tickMarkSize-Plot2D::plotPad << "\" y1=\"" << Plot2D::yTickPixelsY[i]
                 << "\" x2=\"" << Plot2D::gLeft-Plot2D::plotPad << "\" y2=\"" << Plot2D::yTickPixelsY[i]
                 << "\" stroke=\"" << Plot2D::borderLineColor << "\" stroke-width=\"" << Plot2D::borderLineWidth << "\" stroke-linecap=\"round\" />\n";
         }
@@ -614,16 +623,16 @@ inline void Plot2D::drawTicks(std::ofstream& file)
             Plot2D::xTickPixelsX.push_back(Plot2D::toPixelX(val));
         }
         // xTicks
-        file << " \n";
+        ss << " \n";
         for ( size_t i=0; i<Plot2D::xTickPointsX.size(); ++i)
         {
             if (Plot2D::xAxisVisible)
             {
-                file << " <line x1=\"" << Plot2D::xTickPixelsX[i] << "\" y1=\"" << Plot2D::toPixelY(0.0)-Plot2D::tickMarkSize/2.0
+                ss << " <line x1=\"" << Plot2D::xTickPixelsX[i] << "\" y1=\"" << Plot2D::toPixelY(0.0)-Plot2D::tickMarkSize/2.0
                     << "\" x2=\"" << Plot2D::xTickPixelsX[i] << "\" y2=\"" << Plot2D::toPixelY(0.0)+Plot2D::tickMarkSize/2.0
                     << "\" stroke=\"" << Plot2D::axisLineColor << "\" stroke-width=\"" << Plot2D::axisLineWidth << "\" stroke-linecap=\"round\" />\n";
             }
-            file << " <line x1=\"" << Plot2D::xTickPixelsX[i] << "\" y1=\"" << Plot2D::gBottom+Plot2D::plotPad
+            ss << " <line x1=\"" << Plot2D::xTickPixelsX[i] << "\" y1=\"" << Plot2D::gBottom+Plot2D::plotPad
                 << "\" x2=\"" << Plot2D::xTickPixelsX[i] << "\" y2=\"" << Plot2D::gBottom+Plot2D::tickMarkSize+Plot2D::plotPad
                 << "\" stroke=\"" << Plot2D::borderLineColor << "\" stroke-width=\"" << Plot2D::borderLineWidth << "\" stroke-linecap=\"round\" />\n";
         }
@@ -636,7 +645,7 @@ inline void Plot2D::drawTicks(std::ofstream& file)
         // yTicks
         if ( Plot2D::xAxisVisible )
         {
-            file << " \n";
+            ss << " \n";
             for ( double tickyVal=0.0; tickyVal<=Plot2D::yMax; tickyVal+=Plot2D::yStep)
             {
                 double tickY = Plot2D::toPixelY(tickyVal);
@@ -644,11 +653,11 @@ inline void Plot2D::drawTicks(std::ofstream& file)
                 Plot2D::yTickPointsY.push_back(tickyVal);
                 if (Plot2D::yAxisVisible)
                 {
-                    file << " <line x1=\"" << Plot2D::toPixelX(0.0)-Plot2D::tickMarkSize/2.0 << "\" y1=\"" << tickY
+                    ss << " <line x1=\"" << Plot2D::toPixelX(0.0)-Plot2D::tickMarkSize/2.0 << "\" y1=\"" << tickY
                         << "\" x2=\"" << Plot2D::toPixelX(0.0)+Plot2D::tickMarkSize/2.0 << "\" y2=\"" << tickY
                         << "\" stroke=\"" << Plot2D::axisLineColor << "\" stroke-width=\"" << Plot2D::axisLineWidth << "\" stroke-linecap=\"round\" />\n";
                 }
-                file << " <line x1=\"" << Plot2D::gLeft-Plot2D::tickMarkSize-Plot2D::plotPad << "\" y1=\"" << tickY
+                ss << " <line x1=\"" << Plot2D::gLeft-Plot2D::tickMarkSize-Plot2D::plotPad << "\" y1=\"" << tickY
                     << "\" x2=\"" << Plot2D::gLeft-Plot2D::plotPad << "\" y2=\"" << tickY
                     << "\" stroke=\"" << Plot2D::borderLineColor << "\" stroke-width=\"" << Plot2D::borderLineWidth << "\" stroke-linecap=\"round\" />\n";
             }
@@ -659,18 +668,18 @@ inline void Plot2D::drawTicks(std::ofstream& file)
                 Plot2D::yTickPointsY.push_back(tickyVal);
                 if ( Plot2D::yAxisVisible )
                 {
-                    file << " <line x1=\"" << Plot2D::toPixelX(0.0)-Plot2D::tickMarkSize/2.0 << "\" y1=\"" << tickY
+                    ss << " <line x1=\"" << Plot2D::toPixelX(0.0)-Plot2D::tickMarkSize/2.0 << "\" y1=\"" << tickY
                         << "\" x2=\"" << Plot2D::toPixelX(0.0)+Plot2D::tickMarkSize/2.0 << "\" y2=\"" << tickY
                         << "\" stroke=\"" << Plot2D::axisLineColor << "\" stroke-width=\"" << Plot2D::axisLineWidth << "\" stroke-linecap=\"round\" />\n";
                 }
-                file << " <line x1=\"" << Plot2D::gLeft-Plot2D::tickMarkSize-Plot2D::plotPad << "\" y1=\"" << tickY
+                ss << " <line x1=\"" << Plot2D::gLeft-Plot2D::tickMarkSize-Plot2D::plotPad << "\" y1=\"" << tickY
                     << "\" x2=\"" << Plot2D::gLeft-Plot2D::plotPad << "\" y2=\"" << tickY
                     << "\" stroke=\"" << Plot2D::borderLineColor << "\" stroke-width=\"" << Plot2D::borderLineWidth << "\" stroke-linecap=\"round\" />\n";
             }
         }
         else
         {
-            file << " \n";
+            ss << " \n";
             for ( size_t i=0; i<Plot2D::numYTicks; ++i)
             {
                 double tickY = Plot2D::toPixelY(Plot2D::yMin+i*Plot2D::yStep);
@@ -678,12 +687,11 @@ inline void Plot2D::drawTicks(std::ofstream& file)
                 Plot2D::yTickPointsY.push_back(Plot2D::yMin+i*Plot2D::yStep);
                 if (Plot2D::yAxisVisible)
                 {
-                    file << " <line x1=\"" << Plot2D::toPixelX(0.0)-Plot2D::tickMarkSize/2.0 << "\" y1=\"" << tickY
+                    ss << " <line x1=\"" << Plot2D::toPixelX(0.0)-Plot2D::tickMarkSize/2.0 << "\" y1=\"" << tickY
                         << "\" x2=\"" << Plot2D::toPixelX(0.0)+Plot2D::tickMarkSize/2.0 << "\" y2=\"" << tickY
-                        << "\" stroke=\"" << Plot2D::axisLineColor
-                        << "\" stroke-width=\"" << Plot2D::axisLineWidth << "\" stroke-linecap=\"round\" />\n";
+                        << "\" stroke=\"" << Plot2D::axisLineColor << "\" stroke-width=\"" << Plot2D::axisLineWidth << "\" stroke-linecap=\"round\" />\n";
                 }
-                file << " <line x1=\"" << Plot2D::gLeft-Plot2D::tickMarkSize-Plot2D::plotPad << "\" y1=\"" << tickY
+                ss << " <line x1=\"" << Plot2D::gLeft-Plot2D::tickMarkSize-Plot2D::plotPad << "\" y1=\"" << tickY
                     << "\" x2=\"" << Plot2D::gLeft-Plot2D::plotPad << "\" y2=\"" << tickY
                     << "\" stroke=\"" << Plot2D::borderLineColor << "\" stroke-width=\"" << Plot2D::borderLineWidth << "\" stroke-linecap=\"round\" />\n";
             }
@@ -691,7 +699,7 @@ inline void Plot2D::drawTicks(std::ofstream& file)
         // xTicks
         if ( Plot2D::yAxisVisible )
         {
-            file << " \n";
+            ss << " \n";
             for ( double tickxVal=0.0; tickxVal<=Plot2D::xMax; tickxVal+=Plot2D::xStep)
             {
                 double tickX = Plot2D::toPixelX(tickxVal);
@@ -699,11 +707,11 @@ inline void Plot2D::drawTicks(std::ofstream& file)
                 Plot2D::xTickPixelsX.push_back(tickX);
                 if (Plot2D::xAxisVisible)
                 {
-                    file << " <line x1=\"" << tickX << "\" y1=\"" << Plot2D::toPixelY(0.0)-Plot2D::tickMarkSize/2.0
+                    ss << " <line x1=\"" << tickX << "\" y1=\"" << Plot2D::toPixelY(0.0)-Plot2D::tickMarkSize/2.0
                         << "\" x2=\"" << tickX << "\" y2=\"" << Plot2D::toPixelY(0.0)+Plot2D::tickMarkSize/2.0
                         << "\" stroke=\"" << Plot2D::axisLineColor << "\" stroke-width=\"" << Plot2D::axisLineWidth << "\" stroke-linecap=\"round\" />\n";
                 }
-                file << " <line x1=\"" << tickX << "\" y1=\"" << Plot2D::gBottom+Plot2D::plotPad
+                ss << " <line x1=\"" << tickX << "\" y1=\"" << Plot2D::gBottom+Plot2D::plotPad
                     << "\" x2=\"" << tickX << "\" y2=\"" << Plot2D::gBottom+Plot2D::tickMarkSize+Plot2D::plotPad
                     << "\" stroke=\"" << Plot2D::borderLineColor << "\" stroke-width=\"" << Plot2D::borderLineWidth << "\" stroke-linecap=\"round\" />\n";
             }
@@ -714,18 +722,18 @@ inline void Plot2D::drawTicks(std::ofstream& file)
                 Plot2D::xTickPixelsX.push_back(tickX);
                 if (Plot2D::xAxisVisible)
                 {
-                    file << " <line x1=\"" << tickX << "\" y1=\"" << Plot2D::toPixelY(0.0)-Plot2D::tickMarkSize/2.0
+                    ss << " <line x1=\"" << tickX << "\" y1=\"" << Plot2D::toPixelY(0.0)-Plot2D::tickMarkSize/2.0
                         << "\" x2=\"" << tickX << "\" y2=\"" << Plot2D::toPixelY(0.0)+Plot2D::tickMarkSize/2.0
                         << "\" stroke=\"" << Plot2D::axisLineColor << "\" stroke-width=\"" << Plot2D::axisLineWidth << "\" stroke-linecap=\"round\" />\n";
                 }
-                file << " <line x1=\"" << tickX << "\" y1=\"" << Plot2D::gBottom+Plot2D::plotPad
+                ss << " <line x1=\"" << tickX << "\" y1=\"" << Plot2D::gBottom+Plot2D::plotPad
                     << "\" x2=\"" << tickX << "\" y2=\"" << Plot2D::gBottom+Plot2D::tickMarkSize+Plot2D::plotPad
                     << "\" stroke=\"" << Plot2D::borderLineColor << "\" stroke-width=\"" << Plot2D::borderLineWidth << "\" stroke-linecap=\"round\" />\n";
             }
         }
         else
         {
-            file << " \n";
+            ss << " \n";
             for ( size_t i=0; i<Plot2D::numXTicks; ++i)
             {
                 double tickX = Plot2D::toPixelX(Plot2D::xMin+i*Plot2D::xStep);
@@ -733,40 +741,57 @@ inline void Plot2D::drawTicks(std::ofstream& file)
                 Plot2D::xTickPixelsX.push_back(tickX);
                 if (Plot2D::xAxisVisible)
                 {
-                    file << " <line x1=\"" << tickX << "\" y1=\"" << Plot2D::toPixelY(0.0)-Plot2D::tickMarkSize/2.0
+                    ss << " <line x1=\"" << tickX << "\" y1=\"" << Plot2D::toPixelY(0.0)-Plot2D::tickMarkSize/2.0
                         << "\" x2=\"" << tickX << "\" y2=\"" << Plot2D::toPixelY(0.0)+Plot2D::tickMarkSize/2.0
                         << "\" stroke=\"" << Plot2D::axisLineColor << "\" stroke-width=\"" << Plot2D::axisLineWidth << "\" stroke-linecap=\"round\" />\n";
                 }
-                file << " <line x1=\"" << tickX << "\" y1=\"" << Plot2D::gBottom+Plot2D::plotPad
+                ss << " <line x1=\"" << tickX << "\" y1=\"" << Plot2D::gBottom+Plot2D::plotPad
                     << "\" x2=\"" << tickX << "\" y2=\"" << Plot2D::gBottom+Plot2D::tickMarkSize+Plot2D::plotPad
                     << "\" stroke=\"" << Plot2D::borderLineColor << "\" stroke-width=\"" << Plot2D::borderLineWidth << "\" stroke-linecap=\"round\" />\n";
             }
         }
     }
+
+    Plot2D::ticksString = ss.str();
 }
 
-inline void Plot2D::drawGrid(std::ofstream& file)
+inline Plot2D::drawTicks(std::ofstream& file)
 {
-    file << " \n";
+    writeTicksString();
+    file << Plot2D::ticksString;
+}
+
+inline void Plot2D::writeGridString()
+{
+    std::stringstream ss;
+    ss << " \n";
     for ( size_t i=0; i<Plot2D::xTickPointsX.size(); ++i)
     {
-        file << " <line x1=\"" << Plot2D::xTickPixelsX[i] << "\" y1=\"" << Plot2D::gTop-Plot2D::plotPad
+        ss << " <line x1=\"" << Plot2D::xTickPixelsX[i] << "\" y1=\"" << Plot2D::gTop-Plot2D::plotPad
             << "\" x2=\"" << Plot2D::xTickPixelsX[i] << "\" y2=\"" << Plot2D::gBottom+Plot2D::plotPad
             << "\" stroke=\"" << Plot2D::gridLineColor << "\" stroke-width=\"" << Plot2D::gridLineWidth << "\" stroke-linecap=\"round\" />\n";
     }
     for ( size_t i=0; i<Plot2D::yTickPointsY.size(); ++i )
     {
-        file << " <line x1=\"" << Plot2D::gLeft-Plot2D::plotPad << "\" y1=\"" << Plot2D::yTickPixelsY[i]
+        ss << " <line x1=\"" << Plot2D::gLeft-Plot2D::plotPad << "\" y1=\"" << Plot2D::yTickPixelsY[i]
             << "\" x2=\"" << Plot2D::gRight+Plot2D::plotPad << "\" y2=\"" << Plot2D::yTickPixelsY[i]
             << "\" stroke=\"" << Plot2D::gridLineColor << "\" stroke-width=\"" << Plot2D::gridLineWidth << "\" stroke-linecap=\"round\" />\n";
     }
-    Plot2D::writeNumbers(file);
+    Plot2D::gridString = ss.str();
+    // Plot2D::writeNumbers(file);
 }
 
-inline void Plot2D::writeNumbers(std::ofstream& file)
+inline void Plot2D::drawGrid(std::ofstream& file)
 {
-    file << " \n";
-    file << " <g font-family=\"sans-serif\" font-size=\"" << Plot2D::plotNumeralsFontSize
+    writeGridString();
+    file << Plot2D::gridString;
+}
+
+inline void Plot2D::writeNumbersString()
+{
+    std::stringstream sss;
+    sss << " \n";
+    sss << " <g font-family=\"sans-serif\" font-size=\"" << Plot2D::plotNumeralsFontSize
          << "\" fill=\"" << Plot2D::plotNumeralsColor << "\">\n";
 
     // --- X-AXIS NUMERALS ---
@@ -805,7 +830,7 @@ inline void Plot2D::writeNumbers(std::ofstream& file)
             labelStr = mantissa + "&#215;10" + superscriptExp;
         }
 
-        file << "   <text x=\"" << Plot2D::xTickPixelsX[i]
+        sss << "   <text x=\"" << Plot2D::xTickPixelsX[i]
              << "\" y=\"" << Plot2D::gBottom + (2.0*Plot2D::plotPad+Plot2D::tickMarkSize) + Plot2D::plotNumeralsFontSize
              << "\" text-anchor=\"middle\" dominant-baseline=\"hanging\">"
              << labelStr << "</text>\n";
@@ -845,12 +870,19 @@ inline void Plot2D::writeNumbers(std::ofstream& file)
         }
 
         // Added dominant-baseline="central" to keep numbers aligned with the tick line rows
-        file << "   <text x=\"" << Plot2D::gLeft - (Plot2D::tickMarkSize+Plot2D::plotPad) - Plot2D::plotNumeralsFontSize
+        sss << "   <text x=\"" << Plot2D::gLeft - (Plot2D::tickMarkSize+Plot2D::plotPad) - Plot2D::plotNumeralsFontSize
              << "\" y=\"" << Plot2D::yTickPixelsY[i] + Plot2D::plotNumeralsFontSize/4.0
              << "\" text-anchor=\"end\" dominant-baseline=\"central\">"
              << labelStr << "</text>\n";
     }
-    file << " </g>\n";
+    sss << " </g>\n";
+    Plot2D::numbersString = sss.str();
+}
+
+inline void Plot2D::writeNumbers(std::ofstream& file)
+{
+    writeNumbersString();
+    file << Plot2D::numbersString;
 }
 
 inline void Plot2D::writeAxisLabels(std::ofstream& file)
@@ -902,6 +934,7 @@ inline void Plot2D::drawLegend(std::ofstream& file)
     double legendRightPad = 20.0;
     double legendWidth = 0.0;
     double legendHeight = 0.0;
+    std::cout << "Dynamin width and height adjustment!\n";
     if (Plot2D::xVals.empty())
     {
         if (Plot2D::plotData.empty())
@@ -968,6 +1001,7 @@ inline void Plot2D::drawLegend(std::ofstream& file)
     }
     double itemY = 0.0;
     // Drawing the empty legend box
+    std::cout << "Drawing the box!\n";
     file << "   <rect x=\"" << legendX << "\" y=\"" << legendY
         << "\" width=\"" << legendWidth << "\" height=\"" << legendHeight
         << "\" fill=\"" << Plot2D::backColor << "\" fill-opacity=\"0.75\" stroke=\"" << Plot2D::borderLineColor
@@ -1228,18 +1262,14 @@ inline void Plot2D::plotSVG(const std::string& filename)
                 switch (pd.lineStyle)
                 {
                     case LineStyle::Dashed:
-                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)
-                                    +","+std::to_string(Plot2D::plotLineWidth)+"\"";
+                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)+","+std::to_string(Plot2D::plotLineWidth)+"\"";
                         break;
                     case LineStyle::Dotted:
-                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)
-                                    +","+std::to_string(Plot2D::plotLineWidth)+"\"";
+                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(Plot2D::plotLineWidth)+"\"";
                         break;
                     case LineStyle::DashDot:
-                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)
-                                        +","+std::to_string(Plot2D::plotLineWidth)
-                                        +","+std::to_string(0.05*Plot2D::plotLineWidth)
-                                        +","+std::to_string(Plot2D::plotLineWidth)+"\"";
+                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)+","+std::to_string(Plot2D::plotLineWidth)
+                                        +std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(Plot2D::plotLineWidth)+"\"";
                         break;
                     case LineStyle::Solid:
                     default:
@@ -1249,19 +1279,12 @@ inline void Plot2D::plotSVG(const std::string& filename)
                 if (pd.xs.size()>=std::floor(Plot2D::drawW/(13*pd.lineWidth)))
                 {
                     std::stringstream pathData;
-                    pathData << "M ";
-                    if ( pd.xs[0]<=xMax && pd.xs[0]>=xMin && pd.ys[0]<=yMax && pd.ys[0]>=yMin )
-                    {
-                        pathData << Plot2D::toPixelX(pd.xs[0])
-                                << " " << Plot2D::toPixelY(pd.ys[0]);
-                    }
+                    pathData << "M " << Plot2D::toPixelX(pd.xs[0])
+                        << " " << Plot2D::toPixelY(pd.ys[0]);
                     for ( size_t i=1; i<pd.xs.size(); ++i )
                     {
-                        if ( pd.xs[i]<=xMax && pd.xs[i]>=xMin && pd.ys[i]<=yMax && pd.ys[i]>=yMin )
-                        {
-                            pathData << " L " << Plot2D::toPixelX(pd.xs[i])
-                                    << " " << Plot2D::toPixelY(pd.ys[i]);
-                        }
+                        pathData << " L " << Plot2D::toPixelX(pd.xs[i])
+                            << " " << Plot2D::toPixelY(pd.ys[i]);
                     }
                     file << " <path d=\"" << pathData.str() << "\" fill=\"none"
                         << "\" stroke=\"" << pd.lineColor
@@ -1274,27 +1297,18 @@ inline void Plot2D::plotSVG(const std::string& filename)
                 else
                 {
                     std::stringstream pathData;
-                    pathData << "M ";
-                    if ( pd.xs[0]<=xMax && pd.xs[0]>=xMin && pd.ys[0]<=yMax && pd.ys[0]>=yMin )
-                    {
-                        pathData << Plot2D::toPixelX(pd.xs[0])
-                                << " " << Plot2D::toPixelY(pd.ys[0]);
-                    }
+                    pathData << "M " << Plot2D::toPixelX(pd.xs[0])
+                        << " " << Plot2D::toPixelY(pd.ys[0]);
                     for ( size_t i=0; i<pd.xs.size(); ++i )
                     {
                         double xp = Plot2D::toPixelX(pd.xs[i]);
                         double yp = Plot2D::toPixelY(pd.ys[i]);
-                        if ( xp<=xMax && xp>=xMin && yp<=yMax && yp>=yMin )
+                        file << " <circle cx=\"" << xp << "\" cy=\"" << yp
+                            << "\" r=\"" << 1.25*pd.lineWidth << "\" fill=\"" << pd.lineColor << "\" fill-opacity=\"" << pd.lineOpacity << "\" />\n";
+                        if ( i>0 )
                         {
-                            file << " <circle cx=\"" << xp << "\" cy=\"" << yp
-                                << "\" r=\"" << 1.25*pd.lineWidth
-                                << "\" fill=\"" << pd.lineColor
-                                << "\" fill-opacity=\"" << pd.lineOpacity << "\" />\n";
-                            if ( i>0 )
-                            {
-                                pathData << " L " << Plot2D::toPixelX(pd.xs[i])
-                                        << " " << Plot2D::toPixelY(pd.ys[i]);
-                            }
+                            pathData << " L " << Plot2D::toPixelX(pd.xs[i])
+                                << " " << Plot2D::toPixelY(pd.ys[i]);
                         }
                     }
                     file << " <path d=\"" << pathData.str() << "\" fill=\"none"
@@ -1318,18 +1332,14 @@ inline void Plot2D::plotSVG(const std::string& filename)
             switch (Plot2D::plotLineStyle)
             {
                 case LineStyle::Dashed:
-                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)
-                                +","+std::to_string(Plot2D::plotLineWidth)+"\"";
+                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)+","+std::to_string(Plot2D::plotLineWidth)+"\"";
                     break;
                 case LineStyle::Dotted:
-                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)
-                                +","+std::to_string(Plot2D::plotLineWidth)+"\"";
+                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(Plot2D::plotLineWidth)+"\"";
                     break;
                 case LineStyle::DashDot:
-                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)
-                                +","+std::to_string(Plot2D::plotLineWidth)
-                                +","+std::to_string(0.05*Plot2D::plotLineWidth)
-                                +","+std::to_string(Plot2D::plotLineWidth)+"\"";
+                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)+","+std::to_string(Plot2D::plotLineWidth)
+                                    +std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(Plot2D::plotLineWidth)+"\"";
                     break;
                 case LineStyle::Solid:
                 default:
@@ -1339,19 +1349,12 @@ inline void Plot2D::plotSVG(const std::string& filename)
             if (xVals.size()>=std::floor(Plot2D::drawW/(13*Plot2D::plotLineWidth)))
             {
                 std::stringstream pathData;
-                pathData << "M ";
-                if ( xVals[0]<=xMax && xVals[0]>=xMin && yVals[0]<=yMax && yVals[0]>=yMin )
-                {
-                    pathData << Plot2D::toPixelX(xVals[0])
-                            << " " << Plot2D::toPixelY(yVals[0]);
-                }
+                pathData << "M " << Plot2D::toPixelX(xVals[0])
+                    << " " << Plot2D::toPixelY(yVals[0]);
                 for ( size_t i=1; i<Plot2D::xVals.size(); ++i )
                 {
-                    if ( xVals[i]<=xMax && xVals[i]>=xMin && yVals[i]<=yMax && yVals[i]>=yMin )
-                    {
-                        pathData << " L " << Plot2D::toPixelX(xVals[i])
-                                << " " << Plot2D::toPixelY(yVals[i]);
-                    }
+                    pathData << " L " << Plot2D::toPixelX(xVals[i])
+                        << " " << Plot2D::toPixelY(yVals[i]);
                 }
                 file << " <path d=\"" << pathData.str() << "\" fill=\"none"
                     << "\" stroke=\"" << Plot2D::plotLineColor
@@ -1364,27 +1367,18 @@ inline void Plot2D::plotSVG(const std::string& filename)
             else
             {
                 std::stringstream pathData;
-                pathData << "M ";
-                if ( xVals[0]<=xMax && xVals[0]>=xMin && yVals[0]<=yMax && yVals[0]>=yMin )
-                {
-                    pathData << Plot2D::toPixelX(xVals[0])
+                pathData << "M " << Plot2D::toPixelX(xVals[0])
                     << " " << Plot2D::toPixelY(yVals[0]);
-                }
                 for ( size_t i=0; i<Plot2D::xVals.size(); ++i )
                 {
                     double xp = Plot2D::toPixelX(Plot2D::xVals[i]);
                     double yp = Plot2D::toPixelY(Plot2D::yVals[i]);
-                    if ( xp<=xMax && xp>=xMin && yp<=yMax && yp>=yMin )
+                    file << " <circle cx=\"" << xp << "\" cy=\"" << yp
+                        << "\" r=\"" << 1.25*Plot2D::plotLineWidth << "\" fill=\"" << Plot2D::plotLineColor << "\" fill-opacity=\"" << Plot2D::plotLineOpacity << "\" />\n";
+                    if ( i>0 )
                     {
-                        file << " <circle cx=\"" << xp << "\" cy=\"" << yp
-                            << "\" r=\"" << 1.25*Plot2D::plotLineWidth
-                            << "\" fill=\"" << Plot2D::plotLineColor
-                            << "\" fill-opacity=\"" << Plot2D::plotLineOpacity << "\" />\n";
-                        if ( i>0 )
-                        {
-                            pathData << " L " << Plot2D::toPixelX(xVals[i])
-                                << " " << Plot2D::toPixelY(yVals[i]);
-                        }
+                        pathData << " L " << Plot2D::toPixelX(xVals[i])
+                            << " " << Plot2D::toPixelY(yVals[i]);
                     }
                 }
                 file << " <path d=\"" << pathData.str() << "\" fill=\"none"
@@ -1404,18 +1398,14 @@ inline void Plot2D::plotSVG(const std::string& filename)
             switch (Plot2D::plotLineStyle)
             {
                 case LineStyle::Dashed:
-                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)
-                                +","+std::to_string(Plot2D::plotLineWidth)+"\"";
+                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)+","+std::to_string(Plot2D::plotLineWidth)+"\"";
                     break;
                 case LineStyle::Dotted:
-                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)
-                                +","+std::to_string(Plot2D::plotLineWidth)+"\"";
+                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(Plot2D::plotLineWidth)+"\"";
                     break;
                 case LineStyle::DashDot:
-                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)
-                                +","+std::to_string(Plot2D::plotLineWidth)
-                                +","+std::to_string(0.05*Plot2D::plotLineWidth)
-                                +","+std::to_string(Plot2D::plotLineWidth)+"\"";
+                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)+","+std::to_string(Plot2D::plotLineWidth)
+                                    +std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(Plot2D::plotLineWidth)+"\"";
                     break;
                 case LineStyle::Solid:
                 default:
@@ -1425,19 +1415,12 @@ inline void Plot2D::plotSVG(const std::string& filename)
             if (xVals.size()>=std::floor(Plot2D::drawW/(13*Plot2D::plotLineWidth)))
             {
                 std::stringstream pathData;
-                pathData << "M ";
-                if ( xVals[0]<=xMax && xVals[0]>=xMin && yVals[0]<=yMax && yVals[0]>=yMin )
-                {
-                    pathData << Plot2D::toPixelX(xVals[0])
+                pathData << "M " << Plot2D::toPixelX(xVals[0])
                     << " " << Plot2D::toPixelY(yVals[0]);
-                }
                 for ( size_t i=1; i<Plot2D::xVals.size(); ++i )
                 {
-                    if ( xVals[i]<=xMax && xVals[i]>=xMin && yVals[i]<=yMax && yVals[i]>=yMin )
-                    {
-                        pathData << " L " << Plot2D::toPixelX(xVals[i])
-                                << " " << Plot2D::toPixelY(yVals[i]);
-                    }
+                    pathData << " L " << Plot2D::toPixelX(xVals[i])
+                        << " " << Plot2D::toPixelY(yVals[i]);
                 }
                 file << " <path d=\"" << pathData.str() << "\" fill=\"none"
                     << "\" stroke=\"" << Plot2D::plotLineColor
@@ -1450,27 +1433,18 @@ inline void Plot2D::plotSVG(const std::string& filename)
             else
             {
                 std::stringstream pathData;
-                pathData << "M ";
-                if ( xVals[0]<=xMax && xVals[0]>=xMin && yVals[0]<=yMax && yVals[0]>=yMin )
-                {
-                    pathData << Plot2D::toPixelX(xVals[0])
-                            << " " << Plot2D::toPixelY(yVals[0]);
-                }
+                pathData << "M " << Plot2D::toPixelX(xVals[0])
+                    << " " << Plot2D::toPixelY(yVals[0]);
                 for ( size_t i=0; i<Plot2D::xVals.size(); ++i )
                 {
                     double xp = Plot2D::toPixelX(Plot2D::xVals[i]);
                     double yp = Plot2D::toPixelY(Plot2D::yVals[i]);
-                    if ( xp<=xMax && xp>=xMin && yp<=yMax && yp>=yMin )
+                    file << " <circle cx=\"" << xp << "\" cy=\"" << yp
+                        << "\" r=\"" << 1.25*Plot2D::plotLineWidth << "\" fill=\"" << Plot2D::plotLineColor << "\" fill-opacity=\"" << Plot2D::plotLineOpacity << "\" />\n";
+                    if ( i>0 )
                     {
-                        file << " <circle cx=\"" << xp << "\" cy=\"" << yp
-                            << "\" r=\"" << 1.25*Plot2D::plotLineWidth
-                            << "\" fill=\"" << Plot2D::plotLineColor
-                            << "\" fill-opacity=\"" << Plot2D::plotLineOpacity << "\" />\n";
-                        if ( i>0 )
-                        {
-                            pathData << " L " << Plot2D::toPixelX(xVals[i])
-                                << " " << Plot2D::toPixelY(yVals[i]);
-                        }
+                        pathData << " L " << Plot2D::toPixelX(xVals[i])
+                            << " " << Plot2D::toPixelY(yVals[i]);
                     }
                 }
                 file << " <path d=\"" << pathData.str() << "\" fill=\"none"
@@ -1488,18 +1462,14 @@ inline void Plot2D::plotSVG(const std::string& filename)
                 switch (pd.lineStyle)
                 {
                     case LineStyle::Dashed:
-                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)
-                                    +","+std::to_string(Plot2D::plotLineWidth)+"\"";
+                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)+","+std::to_string(Plot2D::plotLineWidth)+"\"";
                         break;
                     case LineStyle::Dotted:
-                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)
-                                    +","+std::to_string(Plot2D::plotLineWidth)+"\"";
+                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(Plot2D::plotLineWidth)+"\"";
                         break;
                     case LineStyle::DashDot:
-                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)
-                                    +","+std::to_string(Plot2D::plotLineWidth)
-                                    +","+std::to_string(0.05*Plot2D::plotLineWidth)
-                                    +","+std::to_string(Plot2D::plotLineWidth)+"\"";
+                        dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)+","+std::to_string(Plot2D::plotLineWidth)
+                                        +std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(Plot2D::plotLineWidth)+"\"";
                         break;
                     case LineStyle::Solid:
                     default:
@@ -1509,19 +1479,12 @@ inline void Plot2D::plotSVG(const std::string& filename)
                 if (pd.xs.size()>=std::floor(Plot2D::drawW/(13*pd.lineWidth)))
                 {
                     std::stringstream pathData;
-                    pathData << "M ";
-                    if ( pd.xs[0]<=xMax && pd.xs[0]>=xMin && pd.ys[0]<=yMax && pd.ys[0]>=yMin )
-                    {
-                        pathData << Plot2D::toPixelX(pd.xs[0])
-                            << " " << Plot2D::toPixelY(pd.ys[0]);
-                    }
+                    pathData << "M " << Plot2D::toPixelX(pd.xs[0])
+                        << " " << Plot2D::toPixelY(pd.ys[0]);
                     for ( size_t i=1; i<pd.xs.size(); ++i )
                     {
-                        if ( pd.xs[i]<=xMax && pd.xs[i]>=xMin && pd.ys[i]<=yMax && pd.ys[i]>=yMin )
-                        {
-                            pathData << " L " << Plot2D::toPixelX(pd.xs[i])
-                                << " " << Plot2D::toPixelY(pd.ys[i]);
-                        }
+                        pathData << " L " << Plot2D::toPixelX(pd.xs[i])
+                            << " " << Plot2D::toPixelY(pd.ys[i]);
                     }
                     file << " <path d=\"" << pathData.str() << "\" fill=\"none"
                         << "\" stroke=\"" << pd.lineColor
@@ -1534,27 +1497,18 @@ inline void Plot2D::plotSVG(const std::string& filename)
                 else
                 {
                     std::stringstream pathData;
-                    pathData << "M ";
-                    if ( pd.xs[0]<=xMax && pd.xs[0]>=xMin && pd.ys[0]<=yMax && pd.ys[0]>=yMin )
-                    {
-                        pathData << Plot2D::toPixelX(pd.xs[0])
-                            << " " << Plot2D::toPixelY(pd.ys[0]);
-                    }
+                    pathData << "M " << Plot2D::toPixelX(pd.xs[0])
+                        << " " << Plot2D::toPixelY(pd.ys[0]);
                     for ( size_t i=0; i<pd.xs.size(); ++i )
                     {
                         double xp = Plot2D::toPixelX(pd.xs[i]);
                         double yp = Plot2D::toPixelY(pd.ys[i]);
-                        if ( xp<=xMax && xp>=xMin && yp<=yMax && yp>=yMin )
+                        file << " <circle cx=\"" << xp << "\" cy=\"" << yp
+                            << "\" r=\"" << 1.25*pd.lineWidth << "\" fill=\"" << pd.lineColor << "\" fill-opacity=\"" << pd.lineOpacity << "\" />\n";
+                        if ( i>0 )
                         {
-                            file << " <circle cx=\"" << xp << "\" cy=\"" << yp
-                                << "\" r=\"" << 1.25*pd.lineWidth
-                                << "\" fill=\"" << pd.lineColor
-                                << "\" fill-opacity=\"" << pd.lineOpacity << "\" />\n";
-                            if ( i>0 )
-                            {
-                                pathData << " L " << Plot2D::toPixelX(pd.xs[i])
-                                    << " " << Plot2D::toPixelY(pd.ys[i]);
-                            }
+                            pathData << " L " << Plot2D::toPixelX(pd.xs[i])
+                                << " " << Plot2D::toPixelY(pd.ys[i]);
                         }
                     }
                     file << " <path d=\"" << pathData.str() << "\" fill=\"none"
