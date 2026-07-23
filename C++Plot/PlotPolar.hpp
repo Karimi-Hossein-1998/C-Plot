@@ -502,7 +502,7 @@ inline void PlotPolar::writeplotTitle(std::ofstream& file)
     file << " <g font-family=\"sans-serif\" font-size=\"" << PlotPolar::plotTitleFontSize
          << "\" fill=\"" << PlotPolar::plotTitleColor << "\">\n";
     file << "   <text x=\"" << PlotPolar::width / 2.0 << "\" y=\"" << PlotPolar::plotTitleFontSize+10.0
-        << "\" text-anchor=\"middle\" dominant-baseline=\"hanging\" font-weight=\"bold\">"
+        << "\" text-anchor=\"middle\" dominant-baseline=\"central\" font-weight=\"bold\">"
         << PlotPolar::plotTitleText << "</text>\n";
     file << " </g>\n";
 }

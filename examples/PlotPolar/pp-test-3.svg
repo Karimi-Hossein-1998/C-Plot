@@ -959,6 +959,6 @@
  <circle cx="347.22" cy="392.71" r="5" stroke="#7f7fff" stroke-opacity="0.5" stroke-width="1" fill="#1f1f1f" fill-opacity="0.4" />
  <circle cx="289.238" cy="609.271" r="5" stroke="#7f7fff" stroke-opacity="0.5" stroke-width="1" fill="#1f1f1f" fill-opacity="0.4" />
  <g font-family="sans-serif" font-size="45" fill="#007f00">
-   <text x="550" y="55" text-anchor="middle" dominant-baseline="hanging" font-weight="bold">Title Test!</text>
+   <text x="550" y="55" text-anchor="middle" dominant-baseline="central" font-weight="bold">Title Test!</text>
  </g>
 </svg>

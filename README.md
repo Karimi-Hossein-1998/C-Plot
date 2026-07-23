@@ -7,6 +7,7 @@ This is a *standalone*, *header-only*, and lightweight tool for plotting in `C++
 1. [C++Plot](#cplot)
     1. [Table of Contents](#table-of-contents)
     2. [Plot2D](#plot2d)
+    3. [PlotPolar](#plotpolar)
 
 ## Plot2D
 
