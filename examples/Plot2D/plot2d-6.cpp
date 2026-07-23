@@ -42,7 +42,7 @@ int main()
         // ys.push_back(xs[i],3));
     }
     // First initiatin.
-    Plot2D plot(xs,ys,2000,2300,150);
+    Plot2D plot(xs,ys,2000,2300,175);
     // Adding exp, sin, cos.
     plot.addMultipleData(plotdata);
     xs = {};
@@ -71,9 +71,9 @@ int main()
     plot.setborderLineWidth(1.5);
     plot.setaxisLineWidth(2.5);
     plot.setgridLineWidth(0.5);
-    plot.setplotNumeralsFontSize(15);
-    plot.setplotAxisLabelFontSize(18);
-    plot.setplotTitleFontSize(50.0);
+    plot.setplotNumeralsFontSize(25);
+    plot.setplotAxisLabelFontSize(50);
+    plot.setplotTitleFontSize(75.0);
     plot.setxAxisLabel("X axis test!");
     plot.setyAxisLabel("Y axis test!");
     plot.setplotTitleText("Testing Title!");

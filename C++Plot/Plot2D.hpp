@@ -845,7 +845,7 @@ inline void Plot2D::writeNumbers(std::ofstream& file)
         }
 
         // Added dominant-baseline="central" to keep numbers aligned with the tick line rows
-        file << "   <text x=\"" << Plot2D::gLeft - (Plot2D::tickMarkSize+Plot2D::plotPad) - Plot2D::plotNumeralsFontSize
+        file << "   <text x=\"" << Plot2D::gLeft - (Plot2D::tickMarkSize+Plot2D::plotPad) - Plot2D::plotNumeralsFontSize*0.5
              << "\" y=\"" << Plot2D::yTickPixelsY[i] + Plot2D::plotNumeralsFontSize/4.0
              << "\" text-anchor=\"end\" dominant-baseline=\"central\">"
              << labelStr << "</text>\n";
@@ -866,12 +866,14 @@ inline void Plot2D::writeAxisLabels(std::ofstream& file)
     double xAxisLabelY = Plot2D::gBottom + (3.0*Plot2D::plotPad + Plot2D::tickMarkSize) + Plot2D::plotNumeralsFontSize + Plot2D::plotAxisLabelFontSize;
     file << "   \n";
     file << "   <text x=\"" << xAxisLabelX << "\" y=\"" << xAxisLabelY
-        << "\" text-anchor=\"middle\" dominant-baseline=\"hanging\" font-weight=\"bold\">"
+        << "\" text-anchor=\"middle\" dominant-baseline=\"central\" font-weight=\"bold\">"
         << Plot2D::xAxisLabel << "</text>\n";
 
     // 2. Y-Axis Label: Placed to the left of the Y-axis numbers and rotated -90 degrees
     // Calculate a safe padding slot out to the left of the border box
-    double yAxisLabelX = Plot2D::gLeft - (Plot2D::plotPad + Plot2D::tickMarkSize) - (2.0+Plot2D::plotNumeralsSignificantDigits)*Plot2D::plotNumeralsFontSize - Plot2D::plotAxisLabelFontSize;
+    double yAxisLabelX = Plot2D::gLeft - Plot2D::tickMarkSize
+                        - (1.1+Plot2D::plotNumeralsSignificantDigits)*Plot2D::plotNumeralsFontSize
+                        - Plot2D::plotAxisLabelFontSize*0.5;
     // double yAxisLabelX = Plot2D::gLeft - 4.0*(Plot2D::tickMarkSize + Plot2D::plotPad) + 2.0*Plot2D::plotNumeralsFontSize;
     double yAxisLabelY = Plot2D::height / 2.0; // Vertically centered on the plot wall
 
@@ -889,7 +891,7 @@ inline void Plot2D::writeplotTitle(std::ofstream& file)
     file << " <g font-family=\"sans-serif\" font-size=\"" << Plot2D::plotTitleFontSize
          << "\" fill=\"" << Plot2D::plotTitleColor << "\">\n";
     file << "   <text x=\"" << Plot2D::width / 2.0 << "\" y=\"" << Plot2D::plotTitleFontSize+10.0
-        << "\" text-anchor=\"middle\" dominant-baseline=\"hanging\" font-weight=\"bold\">"
+        << "\" text-anchor=\"middle\" dominant-baseline=\"central\" font-weight=\"bold\">"
         << Plot2D::plotTitleText << "</text>\n";
     file << " </g>\n";
 }
