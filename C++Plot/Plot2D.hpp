@@ -110,7 +110,7 @@ class Plot2DData
                 lineColor = "#000000";
                 std::cout << "Values were out of bound! Defaulted to black for lineColor!\n";
             }
-            if (errs.size() == ys.size() && errorPlot)
+            if (errs.size() == ys.size())
             {
                 errors = errs;
                 for ( size_t i=0; i<ys.size(); ++i )
@@ -119,7 +119,7 @@ class Plot2DData
                     ysErrorsNegative.push_back(ys[i]-errors[i]);
                 }
             }
-            else
+            else if (errorPlot)
             {
 				throw std::runtime_error("Errors must be the same shape and size as the y values!\n");
 			}
@@ -262,17 +262,20 @@ class Plot2D
             {
                 throw std::runtime_error("The data is empty! You must provide at least one set of data.");
             }
-            plotData = data;
             width = w;
             height = h;
             padding = pad;
-            xMin = *std::min_element(plotData[0].xs.begin(),plotData[0].xs.end());
-            xMax = *std::max_element(plotData[0].xs.begin(),plotData[0].xs.end());
-            yMin = *std::min_element(plotData[0].ys.begin(),plotData[0].ys.end());
-            yMax = *std::max_element(plotData[0].ys.begin(),plotData[0].ys.end());
-            for ( const auto pd : plotData )
+            xMin = (data[0].xs.empty()) ? 1.0e10 : *std::min_element(data[0].xs.begin(),data[0].xs.end());
+            xMax = (data[0].xs.empty()) ? -1.0e10 : *std::max_element(data[0].xs.begin(),data[0].xs.end());
+            yMin = (data[0].ys.empty()) ? 1.0e10 : *std::min_element(data[0].ys.begin(),data[0].ys.end());
+            yMax = (data[0].ys.empty()) ? -1.0e10 : *std::max_element(data[0].ys.begin(),data[0].ys.end());
+            for ( const auto pd : data )
             {
-                if ( (pd.xs.size() != pd.ys.size()) || (pd.xs.empty()) || (pd.ys.empty()) ) continue;
+                if ( (pd.xs.size() != pd.ys.size()) || (pd.xs.empty()) || (pd.ys.empty()) )
+                    continue;
+                if ( pd.errorPlot && (pd.errors.size()!=pd.ys.size()) )
+                    continue;
+				plotData.push_back(pd);
                 double localXMin = *std::min_element(pd.xs.begin(),pd.xs.end());
                 double localXMax = *std::max_element(pd.xs.begin(),pd.xs.end());
                 double localYMin = *std::min_element(pd.ys.begin(),pd.ys.end());
