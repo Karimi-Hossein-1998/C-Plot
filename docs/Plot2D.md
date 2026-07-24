@@ -65,6 +65,7 @@ There are two different initializations (i.e. *constructors*) available.
 - **`bool plotLegend = false`:** Whether *legend* is drawn. Default is `false`.
 - **`bool xAxisVisible`:** Whether the *x-axis* is visible. This will be inferred from the data series and cannot be set forcefully (in an indirect way one can force the values of `yMin`, and `yMax` in a way that makes the *x-axis* visible).
 - **`bool yAxisVisible`:** Whether the *y-axis* is visible. This will be inferred from the data series and cannot be set forcefully (in an indirect way one can force the values of `xMin`, and `xMax` in a way that makes the *y-axis* visible).
+- **`bool errorPlot`:** Whether the *error* is plotted. (Error band plot flag).
 
 ### Labels and Titles
 
@@ -103,6 +104,9 @@ There are two different initializations (i.e. *constructors*) available.
 - **`dVec xTickPointsX`:** Position of *x-axis* ticks in real values.
 - **`dVec yTickPixelsY`:** Position of *y-axis* ticks in pixels.
 - **`dVec yTickPointsY`:** Position of *y-axis* ticks in real values.
+- **`dVec errors`:** The values of errors (must be the same size as `xVals` and `yVals`). *Note* that errors must be positive for it to make sense (as a measure of variation from `yVals` or something similar), but there is nothing to stop you from entering other values!
+- **`dVec yValsErrorsPositive`:** The values of `yVals+errors` (upper band path).
+- **`dVec yValsErrorsNegative`:** The values of `yVals-errors` (lower band path).
 
 ### Values with Default
 
@@ -167,6 +171,7 @@ These are the functions that do the inner works of the plotting and only called 
 - **`inline void setaxisLabel(bool al) {axisLabel=al;}`:** Set the `axisLabel` flag.
 - **`inline void setautoTicks(bool at) {autoTicks=at;}`:** Set the `autoTicks` flag.
 - **`inline void setplotLegend(bool pl) {plotLegend=pl;}`:** Set the `plotLegend` flag.
+- **`inline void seterrorPlot(bool ep) {errorPlot=ep;}`:** Set the `errorPlot` flag.
 
 ### Set the Labels and Titles
 
@@ -184,6 +189,7 @@ These are the functions that do the inner works of the plotting and only called 
 - **`inline void setplotLineOpacity(double op) {plotLineOpacity=op;}`:** Set the `plotLineOpacity`.
 - **`inline void setplotLineStyle(LineStyle pls) {plotLineStyle=pls;}`:** Set the `plotLineStyle`.
 - **`inline void setlegendPos(LegendPos lp) {legendPos=lp;}`:** Set the `legendPos`.
+- **`inline void setplotErrors(const dVec& errs)`:** Set/Add the values of `errors`.
 
 ### Set the Font Sizes
 
@@ -262,8 +268,13 @@ class Plot2DData
         double lineWidth;
         double lineOpacity = 1.0;
         std::string lineLabel = "";
-        Plot2DData(const dVec& x, const dVec& y, LineStyle ls, size_t R, size_t G, size_t B, double lw, double op = 1.0, std::string ll = "")
-        : xs(x), ys(y), lineStyle(ls), lineWidth(lw), lineOpacity(op), lineLabel(ll)
+        bool errorPlot = false;
+        dVec errors;
+        dVec ysErrorsPositive;
+        dVec ysErrorsNegative;
+
+        Plot2DData(const dVec& x, const dVec& y, LineStyle ls, size_t R, size_t G, size_t B, double lw, double op = 1.0, std::string ll = "", bool ep=false, const dVec& errs={})
+        : xs(x), ys(y), lineStyle(ls), lineWidth(lw), lineOpacity(op), lineLabel(ll), errorPlot(ep)
         {
             if ( (R<256) && (G<256) && (B<256) )
             {
@@ -276,6 +287,19 @@ class Plot2DData
                 lineColor = "#000000";
                 std::cout << "Values were out of bound! Defaulted to black for lineColor!\n";
             }
+            if (errs.size() == ys.size() && errorPlot)
+            {
+                errors = errs;
+                for ( size_t i=0; i<ys.size(); ++i )
+                {
+                    ysErrorsPositive.push_back(ys[i]+errors[i]);
+                    ysErrorsNegative.push_back(ys[i]-errors[i]);
+                }
+            }
+            else
+            {
+				throw std::runtime_error("Errors must be the same shape and size as the y values!\n");
+			}
         };
 };
 ```

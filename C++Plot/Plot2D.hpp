@@ -91,8 +91,13 @@ class Plot2DData
         double lineWidth;
         double lineOpacity = 1.0;
         std::string lineLabel = "";
-        Plot2DData(const dVec& x, const dVec& y, LineStyle ls, size_t R, size_t G, size_t B, double lw, double op = 1.0, std::string ll = "")
-        : xs(x), ys(y), lineStyle(ls), lineWidth(lw), lineOpacity(op), lineLabel(ll)
+        bool errorPlot = false;
+        dVec errors;
+        dVec ysErrorsPositive;
+        dVec ysErrorsNegative;
+
+        Plot2DData(const dVec& x, const dVec& y, LineStyle ls, size_t R, size_t G, size_t B, double lw, double op = 1.0, std::string ll = "", bool ep=false, const dVec& errs={})
+        : xs(x), ys(y), lineStyle(ls), lineWidth(lw), lineOpacity(op), lineLabel(ll), errorPlot(ep)
         {
             if ( (R<256) && (G<256) && (B<256) )
             {
@@ -105,6 +110,19 @@ class Plot2DData
                 lineColor = "#000000";
                 std::cout << "Values were out of bound! Defaulted to black for lineColor!\n";
             }
+            if (errs.size() == ys.size() && errorPlot)
+            {
+                errors = errs;
+                for ( size_t i=0; i<ys.size(); ++i )
+                {
+                    ysErrorsPositive.push_back(ys[i]+errors[i]);
+                    ysErrorsNegative.push_back(ys[i]-errors[i]);
+                }
+            }
+            else
+            {
+				throw std::runtime_error("Errors must be the same shape and size as the y values!\n");
+			}
         };
 };
 
@@ -119,6 +137,12 @@ enum class LegendPos
 class Plot2D
 {
     private:
+        // Error
+        dVec errors;
+        bool errorPlot = false;
+        dVec yValsErrorsPositive;
+        dVec yValsErrorsNegative;
+
         double epsilon = 1e-10;
         // Set in initiatioin
         Vec<Plot2DData> plotData;
@@ -333,14 +357,16 @@ class Plot2D
             yAxisVisible = ((xMax>0) && (xMin<=0)) || ((xMax>=0) && (xMin<0));
         };
         ~Plot2D(){};
-        inline void addData(const dVec& x, const dVec& y, LineStyle ls, size_t R, size_t G, size_t B, double lw, double op = 1.0, std::string ll = "")
+        inline void addData(const dVec& x, const dVec& y, LineStyle ls, size_t R, size_t G, size_t B, double lw, double op = 1.0, std::string ll = "", bool ep=false, const dVec& errs={})
         {
             // Simple Safety Checks!
             if ( x.empty() )
                 throw std::runtime_error("Empty data! Cannot plot empty dataset!");
             if ( x.size() != y.size() )
                 throw std::runtime_error("Dimensional mismatch! 'x' and 'y' must have the same dimensions!");
-            Plot2DData pd(x,y,ls,R,G,B,lw,op,ll);
+            if ( ep && (errs.size()!=y.size()) )
+                throw std::runtime_error("Errors must be the same shape and size as y values!\n");
+            Plot2DData pd(x,y,ls,R,G,B,lw,op,ll,ep,errs);
             Plot2D::plotData.push_back(pd);
             double localXMin = *std::min_element(pd.xs.begin(),pd.xs.end());
             double localXMax = *std::max_element(pd.xs.begin(),pd.xs.end());
@@ -381,7 +407,10 @@ class Plot2D
             }
             for ( const auto pd : plotdata )
             {
-                if ( (pd.xs.size() != pd.ys.size()) || (pd.xs.empty()) || (pd.ys.empty()) ) continue;
+                if ( (pd.xs.size() != pd.ys.size()) || (pd.xs.empty()) || (pd.ys.empty()) )
+                    continue;
+                if ( pd.errorPlot && (pd.errors.size()!=pd.ys.size()) )
+                    continue;
                 Plot2D::plotData.push_back(pd);
                 double localXMin = *std::min_element(pd.xs.begin(),pd.xs.end());
                 double localXMax = *std::max_element(pd.xs.begin(),pd.xs.end());
@@ -580,6 +609,20 @@ class Plot2D
         inline void setplotLineLabel(std::string pll) {plotLineLabel=pll;};
         inline void setlegendPos(LegendPos lp) {legendPos=lp;};
         inline void setlegendFontSize(double lfs) {legendFontSize=lfs;};
+        inline void setplotErrors(const dVec& errs)
+        {
+            errors=errs;
+            if ( errors.empty() || errors.size()!=yVals.size() )
+            {
+                throw std::runtime_error("Errors must have the same size as the data!\n");
+            }
+            for ( size_t i=0; i<yVals.size(); ++i )
+            {
+                yValsErrorsNegative.push_back(yVals[i]-errors[i]);
+                yValsErrorsPositive.push_back(yVals[i]+errors[i]);
+            }
+        };
+        inline void seterrorPlot(bool ep) {errorPlot=ep;};
 };
 
 inline void Plot2D::drawTicks(std::ofstream& file)
@@ -1178,9 +1221,9 @@ inline void Plot2D::plotSVG(const std::string& filename)
         file << " <rect x=\"" << Plot2D::gLeft-Plot2D::plotPad << "\" y=\"" << Plot2D::gTop-Plot2D::plotPad
              << "\" width=\"" << (Plot2D::gRight-Plot2D::gLeft+2*Plot2D::plotPad)
              << "\" height=\"" << (Plot2D::gBottom-Plot2D::gTop+2*Plot2D::plotPad)
+             << "\" rx=\"" << Plot2D::plotPad << "\" ry=\"" << Plot2D::plotPad
              << "\" fill=\"none\" stroke=\"" << Plot2D::borderLineColor << "\" stroke-width=\"" << Plot2D::borderLineWidth << "\" />\n";
     }
-
     // Drawing axes lines;
     if ( axis )
     {
@@ -1231,12 +1274,20 @@ inline void Plot2D::plotSVG(const std::string& filename)
     {
         Plot2D::writeplotTitle(file);
     }
+    // Plotting
+    // Adding a clipping mechanism
+    file << " \n";
+    file << " <defs>\n  <clipPath id=\"rect-plot-clip\">\n   <rect x=\"" << gLeft
+        << "\" y=\"" << gTop << "\" width=\"" << drawW << "\" height=\"" << drawH << "\" />\n  </clipPath>\n </defs>\n";
+	// Dummy rectangle to force bounding box
+    file << " <rect x=\"" << gLeft-1 << "\" y=\"" << gTop-1 << "\" width=\"" << drawW+2 << "\" height=\"" << drawH+2
+        << "\" fill=\"none\" pointer-events=\"none\" clip-path=\"url(rect-plot-clip)\" />";
+	double xp=0.0,yp=0.0,xpPre=0.0,ypPre=0.0;
+    double yContinuityThreshold = drawH*0.5;
     if ( xVals.empty() )
     {
         if ( plotData.empty() )
         {
-            file << "</svg>\n";
-            file.close();
             std::cout << "Plot did not get generated and empty plot compiled to: " << filename << '\n';
             throw std::runtime_error("No data was provided!");
         }
@@ -1267,21 +1318,73 @@ inline void Plot2D::plotSVG(const std::string& filename)
                         dashArrayAttr = "";
                         break;
                 }
+                std::stringstream errorData;
+                std::stringstream errorLinePositive;
+                std::stringstream errorLineNegative;
+                if (pd.errorPlot)
+                {
+                    xp = std::clamp(Plot2D::toPixelX(pd.xs[0]),-1.0,width+1.0);
+                    yp = std::clamp(Plot2D::toPixelY(pd.ysErrorsPositive[0]),-1.0,height+1.0);
+                    errorData << "M " << xp << " " << yp;
+                    errorLinePositive << "M " << xp << " " << yp;
+                    yp = std::clamp(Plot2D::toPixelY(pd.ysErrorsNegative[0]),-1.0,height+1.0);
+                    errorLineNegative << "M " << xp << " " << yp;
+                    for ( size_t i=1; i<pd.xs.size(); ++i )
+                    {
+                        xp = std::clamp(Plot2D::toPixelX(pd.xs[i]),-1.0,width+1.0);
+                        yp = std::clamp(Plot2D::toPixelY(pd.ysErrorsPositive[i]),-1.0,height+1.0);
+                        errorData << " L " << xp << " " << yp;
+                        errorLinePositive << " L " << xp << " " << yp;
+                        yp = std::clamp(Plot2D::toPixelY(pd.ysErrorsNegative[i]),-1.0,height+1.0);
+                        errorLineNegative << " L " << xp << " " << yp;
+                    }
+                    for ( size_t i=Plot2D::xVals.size()-1; i>0; --i )
+                    {
+                        xp = std::clamp(Plot2D::toPixelX(pd.xs[i]),-1.0,width+1.0);
+                        yp = std::clamp(Plot2D::toPixelY(pd.ysErrorsNegative[i]),-1.0,height+1.0);
+                        errorData << " L " << xp << " " << yp;
+                    }
+                    errorData << " Z";
+                    file << " <path d=\"" << errorData.str()
+                        << "\" fill=\"" << pd.lineColor
+                        << "\" fill-opacity=\"" << pd.lineOpacity*0.4
+                        << "\" clip-path=\"url(#rect-plot-clip)\" />\n";
+                    file << " <path d=\"" << errorLinePositive.str() << "\" fill=\"none"
+                        << "\" stroke=\"" << pd.lineColor
+                        << "\" stroke-opacity=\"" << pd.lineOpacity*0.5
+                        << "\" stroke-width=\"" << pd.lineWidth*0.5
+                        << "\" stroke-linecap=\"round"
+                        << "\" stroke-linejoin=\"round\""
+                        << dashArrayAttr
+                        << " clip-path=\"url(#rect-plot-clip)\" />\n";
+                    file << " <path d=\"" << errorLineNegative.str() << "\" fill=\"none"
+                        << "\" stroke=\"" << pd.lineColor
+                        << "\" stroke-opacity=\"" << pd.lineOpacity*0.5
+                        << "\" stroke-width=\"" << pd.lineWidth*0.5
+                        << "\" stroke-linecap=\"round"
+                        << "\" stroke-linejoin=\"round\""
+                        << dashArrayAttr
+                        << " clip-path=\"url(#rect-plot-clip)\" />\n";
+                }
                 if (pd.xs.size()>=std::floor(Plot2D::drawW/(13*pd.lineWidth)))
                 {
                     std::stringstream pathData;
-                    pathData << "M ";
-                    if ( pd.xs[0]<=xMax && pd.xs[0]>=xMin && pd.ys[0]<=yMax && pd.ys[0]>=yMin )
-                    {
-                        pathData << Plot2D::toPixelX(pd.xs[0])
-                                << " " << Plot2D::toPixelY(pd.ys[0]);
-                    }
+                    xp = std::clamp(Plot2D::toPixelX(pd.xs[0]),-1.0,width+1.0);
+                    yp = std::clamp(Plot2D::toPixelY(pd.ys[0]),-1.0,height+1.0);
+                    pathData << "M " << xp << " " << yp;
                     for ( size_t i=1; i<pd.xs.size(); ++i )
                     {
-                        if ( pd.xs[i]<=xMax && pd.xs[i]>=xMin && pd.ys[i]<=yMax && pd.ys[i]>=yMin )
+                        xpPre = xp;
+                        ypPre = yp;
+                        xp = std::clamp(Plot2D::toPixelX(pd.xs[i]),-1.0,width+1.0);
+                        yp = std::clamp(Plot2D::toPixelY(pd.ys[i]),-1.0,height+1.0);
+                        if (std::abs(ypPre-yp)>=yContinuityThreshold)
                         {
-                            pathData << " L " << Plot2D::toPixelX(pd.xs[i])
-                                    << " " << Plot2D::toPixelY(pd.ys[i]);
+                            pathData << " M " << xp << " " << yp;
+                        }
+                        else
+                        {
+                            pathData << " L " << xp << " " << yp;
                         }
                     }
                     file << " <path d=\"" << pathData.str() << "\" fill=\"none"
@@ -1290,32 +1393,35 @@ inline void Plot2D::plotSVG(const std::string& filename)
                         << "\" stroke-width=\"" << pd.lineWidth
                         << "\" stroke-linecap=\"round"
                         << "\" stroke-linejoin=\"round\""
-                        << dashArrayAttr << " />\n";
+                        << dashArrayAttr << " clip-path=\"url(#rect-plot-clip)\" />\n";
                 }
                 else
                 {
                     std::stringstream pathData;
-                    pathData << "M ";
-                    if ( pd.xs[0]<=xMax && pd.xs[0]>=xMin && pd.ys[0]<=yMax && pd.ys[0]>=yMin )
+                    xp = std::clamp(Plot2D::toPixelX(pd.xs[0]),-1.0,width+1.0);
+                    yp = std::clamp(Plot2D::toPixelY(pd.ys[0]),-1.0,height+1.0);
+                    pathData << "M " << xp << " " << yp;
+                    file << " <circle cx=\"" << xp << "\" cy=\"" << yp
+                        << "\" r=\"" << 1.25*pd.lineWidth
+                        << "\" fill=\"" << pd.lineColor
+                        << "\" fill-opacity=\"" << pd.lineOpacity << "\" clip-path=\"url(#rect-plot-clip)\" />\n";
+                    for ( size_t i=1; i<pd.xs.size(); ++i )
                     {
-                        pathData << Plot2D::toPixelX(pd.xs[0])
-                                << " " << Plot2D::toPixelY(pd.ys[0]);
-                    }
-                    for ( size_t i=0; i<pd.xs.size(); ++i )
-                    {
-                        double xp = Plot2D::toPixelX(pd.xs[i]);
-                        double yp = Plot2D::toPixelY(pd.ys[i]);
-                        if ( xp<=xMax && xp>=xMin && yp<=yMax && yp>=yMin )
+                        xpPre = xp;
+                        ypPre = yp;
+                        xp = std::clamp(Plot2D::toPixelX(pd.xs[i]),-1.0,width+1.0);
+                        yp = std::clamp(Plot2D::toPixelY(pd.ys[i]),-1.0,height+1.0);
+                        file << " <circle cx=\"" << xp << "\" cy=\"" << yp
+                            << "\" r=\"" << 1.25*pd.lineWidth
+                            << "\" fill=\"" << pd.lineColor
+                            << "\" fill-opacity=\"" << pd.lineOpacity << "\" clip-path=\"url(#rect-plot-clip)\" />\n";
+                        if (std::abs(ypPre-yp)>=yContinuityThreshold)
                         {
-                            file << " <circle cx=\"" << xp << "\" cy=\"" << yp
-                                << "\" r=\"" << 1.25*pd.lineWidth
-                                << "\" fill=\"" << pd.lineColor
-                                << "\" fill-opacity=\"" << pd.lineOpacity << "\" />\n";
-                            if ( i>0 )
-                            {
-                                pathData << " L " << Plot2D::toPixelX(pd.xs[i])
-                                        << " " << Plot2D::toPixelY(pd.ys[i]);
-                            }
+                            pathData << " M " << xp << " " << yp;
+                        }
+                        else
+                        {
+                            pathData << " L " << xp << " " << yp;
                         }
                     }
                     file << " <path d=\"" << pathData.str() << "\" fill=\"none"
@@ -1324,7 +1430,7 @@ inline void Plot2D::plotSVG(const std::string& filename)
                         << "\" stroke-width=\"" << pd.lineWidth
                         << "\" stroke-linecap=\"round"
                         << "\" stroke-linejoin=\"round\""
-                        << dashArrayAttr << " />\n";
+                        << dashArrayAttr << " clip-path=\"url(#rect-plot-clip)\" />\n";
                 }
             }
             std::cout << "Plot generated and compiled to: " << filename << '\n';
@@ -1357,21 +1463,73 @@ inline void Plot2D::plotSVG(const std::string& filename)
                     dashArrayAttr = "";
                     break;
             }
+            std::stringstream errorData;
+            std::stringstream errorLinePositive;
+            std::stringstream errorLineNegative;
+            if (errorPlot)
+            {
+                xp = std::clamp(Plot2D::toPixelX(xVals[0]),-1.0,width+1.0);
+                yp = std::clamp(Plot2D::toPixelY(yValsErrorsPositive[0]),-1.0,height+1.0);
+                errorData << "M " << xp << " " << yp;
+                errorLinePositive << "M " << xp << " " << yp;
+                yp = std::clamp(Plot2D::toPixelY(yValsErrorsNegative[0]),-1.0,height+1.0);
+                errorLineNegative << "M " << xp << " " << yp;
+                for ( size_t i=1; i<Plot2D::xVals.size(); ++i )
+                {
+                    xp = std::clamp(Plot2D::toPixelX(xVals[i]),-1.0,width+1.0);
+                    yp = std::clamp(Plot2D::toPixelY(yValsErrorsPositive[i]),-1.0,height+1.0);
+                    errorData << " L " << xp << " " << yp;
+                    errorLinePositive << " L " << xp << " " << yp;
+                    yp = std::clamp(Plot2D::toPixelY(yValsErrorsNegative[i]),-1.0,height+1.0);
+                    errorLineNegative << " L " << xp << " " << yp;
+                }
+                for ( size_t i=Plot2D::xVals.size()-1; i>0; --i )
+                {
+                    xp = std::clamp(Plot2D::toPixelX(xVals[i]),-1.0,width+1.0);
+                    yp = std::clamp(Plot2D::toPixelY(yValsErrorsNegative[i]),-1.0,height+1.0);
+                    errorData << " L " << xp << " " << yp;
+                }
+                errorData << " Z";
+                file << " <path d=\"" << errorData.str()
+                    << "\" fill=\"" << Plot2D::plotLineColor
+                    << "\" fill-opacity=\"" << Plot2D::plotLineOpacity*0.4
+                    << "\" clip-path=\"url(#rect-plot-clip)\" />\n";
+                file << " <path d=\"" << errorLinePositive.str() << "\" fill=\"none"
+                    << "\" stroke=\"" << Plot2D::plotLineColor
+                    << "\" stroke-opacity=\"" << Plot2D::plotLineOpacity*0.5
+                    << "\" stroke-width=\"" << Plot2D::plotLineWidth*0.5
+                    << "\" stroke-linecap=\"round"
+                    << "\" stroke-linejoin=\"round\""
+                    << dashArrayAttr
+                    << " clip-path=\"url(#rect-plot-clip)\" />\n";
+                file << " <path d=\"" << errorLineNegative.str() << "\" fill=\"none"
+                    << "\" stroke=\"" << Plot2D::plotLineColor
+                    << "\" stroke-opacity=\"" << Plot2D::plotLineOpacity*0.5
+                    << "\" stroke-width=\"" << Plot2D::plotLineWidth*0.5
+                    << "\" stroke-linecap=\"round"
+                    << "\" stroke-linejoin=\"round\""
+                    << dashArrayAttr
+                    << " clip-path=\"url(#rect-plot-clip)\" />\n";
+            }
             if (xVals.size()>=std::floor(Plot2D::drawW/(13*Plot2D::plotLineWidth)))
             {
                 std::stringstream pathData;
-                pathData << "M ";
-                if ( xVals[0]<=xMax && xVals[0]>=xMin && yVals[0]<=yMax && yVals[0]>=yMin )
-                {
-                    pathData << Plot2D::toPixelX(xVals[0])
-                            << " " << Plot2D::toPixelY(yVals[0]);
-                }
+                xp = std::clamp(Plot2D::toPixelX(xVals[0]),-1.0,width+1.0);
+                yp = std::clamp(Plot2D::toPixelY(yVals[0]),-1.0,height+1.0);
+                pathData << "M " << xp << " " << yp;
                 for ( size_t i=1; i<Plot2D::xVals.size(); ++i )
                 {
-                    if ( xVals[i]<=xMax && xVals[i]>=xMin && yVals[i]<=yMax && yVals[i]>=yMin )
+                    xpPre = xp;
+                    ypPre = yp;
+                    xp = std::clamp(Plot2D::toPixelX(xVals[i]),-1.0,width+1.0);
+                    yp = std::clamp(Plot2D::toPixelY(yVals[i]),-1.0,height+1.0);
+                    if (std::abs(ypPre-yp)>=yContinuityThreshold)
                     {
-                        pathData << " L " << Plot2D::toPixelX(xVals[i])
-                                << " " << Plot2D::toPixelY(yVals[i]);
+                        pathData << " M " << xp << " " << yp;
+                    }
+                    else
+                    {
+                        pathData << " L " << xp << " " << yp;
                     }
                 }
                 file << " <path d=\"" << pathData.str() << "\" fill=\"none"
@@ -1380,32 +1538,35 @@ inline void Plot2D::plotSVG(const std::string& filename)
                     << "\" stroke-width=\"" << Plot2D::plotLineWidth
                     << "\" stroke-linecap=\"round"
                     << "\" stroke-linejoin=\"round\""
-                    << dashArrayAttr << " />\n";
+                    << dashArrayAttr << " clip-path=\"url(#rect-plot-clip)\" />\n";
             }
             else
             {
                 std::stringstream pathData;
-                pathData << "M ";
-                if ( xVals[0]<=xMax && xVals[0]>=xMin && yVals[0]<=yMax && yVals[0]>=yMin )
+                xp = std::clamp(Plot2D::toPixelX(xVals[0]),-1.0,width+1.0);
+                yp = std::clamp(Plot2D::toPixelY(yVals[0]),-1.0,height+1.0);
+                pathData << "M " << xp << " " << yp;
+                file << " <circle cx=\"" << xp << "\" cy=\"" << yp
+                    << "\" r=\"" << 1.25*Plot2D::plotLineWidth
+                    << "\" fill=\"" << Plot2D::plotLineColor
+                    << "\" fill-opacity=\"" << Plot2D::plotLineOpacity << "\" clip-path=\"url(#rect-plot-clip)\" />\n";
+                for ( size_t i=1; i<Plot2D::xVals.size(); ++i )
                 {
-                    pathData << Plot2D::toPixelX(xVals[0])
-                    << " " << Plot2D::toPixelY(yVals[0]);
-                }
-                for ( size_t i=0; i<Plot2D::xVals.size(); ++i )
-                {
-                    double xp = Plot2D::toPixelX(Plot2D::xVals[i]);
-                    double yp = Plot2D::toPixelY(Plot2D::yVals[i]);
-                    if ( xp<=xMax && xp>=xMin && yp<=yMax && yp>=yMin )
+                    xpPre = xp;
+                    ypPre = yp;
+                    xp = std::clamp(Plot2D::toPixelX(xVals[i]),-1.0,width+1.0);
+                    yp = std::clamp(Plot2D::toPixelY(yVals[i]),-1.0,height+1.0);
+                    file << " <circle cx=\"" << xp << "\" cy=\"" << yp
+                        << "\" r=\"" << 1.25*Plot2D::plotLineWidth
+                        << "\" fill=\"" << Plot2D::plotLineColor
+                        << "\" fill-opacity=\"" << Plot2D::plotLineOpacity << "\" clip-path=\"url(#rect-plot-clip)\" />\n";
+                    if (std::abs(ypPre-yp)>=yContinuityThreshold)
                     {
-                        file << " <circle cx=\"" << xp << "\" cy=\"" << yp
-                            << "\" r=\"" << 1.25*Plot2D::plotLineWidth
-                            << "\" fill=\"" << Plot2D::plotLineColor
-                            << "\" fill-opacity=\"" << Plot2D::plotLineOpacity << "\" />\n";
-                        if ( i>0 )
-                        {
-                            pathData << " L " << Plot2D::toPixelX(xVals[i])
-                                << " " << Plot2D::toPixelY(yVals[i]);
-                        }
+                        pathData << " M " << xp << " " << yp;
+                    }
+                    else
+                    {
+                        pathData << " L " << xp << " " << yp;
                     }
                 }
                 file << " <path d=\"" << pathData.str() << "\" fill=\"none"
@@ -1414,7 +1575,7 @@ inline void Plot2D::plotSVG(const std::string& filename)
                     << "\" stroke-width=\"" << Plot2D::plotLineWidth
                     << "\" stroke-linecap=\"round"
                     << "\" stroke-linejoin=\"round\""
-                    << dashArrayAttr << " />\n";
+                    << dashArrayAttr << " clip-path=\"url(#rect-plot-clip)\" />\n";
             }
             std::cout << "Plot generated and compiled to: " << filename << '\n';
         }
@@ -1443,21 +1604,73 @@ inline void Plot2D::plotSVG(const std::string& filename)
                     dashArrayAttr = "";
                     break;
             }
+            std::stringstream errorData;
+            std::stringstream errorLinePositive;
+            std::stringstream errorLineNegative;
+            if (errorPlot)
+            {
+                xp = std::clamp(Plot2D::toPixelX(xVals[0]),-1.0,width+1.0);
+                yp = std::clamp(Plot2D::toPixelY(yValsErrorsPositive[0]),-1.0,height+1.0);
+                errorData << "M " << xp << " " << yp;
+                errorLinePositive << "M " << xp << " " << yp;
+                yp = std::clamp(Plot2D::toPixelY(yValsErrorsNegative[0]),-1.0,height+1.0);
+                errorLineNegative << "M " << xp << " " << yp;
+                for ( size_t i=1; i<Plot2D::xVals.size(); ++i )
+                {
+                    xp = std::clamp(Plot2D::toPixelX(xVals[i]),-1.0,width+1.0);
+                    yp = std::clamp(Plot2D::toPixelY(yValsErrorsPositive[i]),-1.0,height+1.0);
+                    errorData << " L " << xp << " " << yp;
+                    errorLinePositive << " L " << xp << " " << yp;
+                    yp = std::clamp(Plot2D::toPixelY(yValsErrorsNegative[i]),-1.0,height+1.0);
+                    errorLineNegative << " L " << xp << " " << yp;
+                }
+                for ( size_t i=Plot2D::xVals.size()-1; i>0; --i )
+                {
+                    xp = std::clamp(Plot2D::toPixelX(xVals[i]),-1.0,width+1.0);
+                    yp = std::clamp(Plot2D::toPixelY(yValsErrorsNegative[i]),-1.0,height+1.0);
+                    errorData << " L " << xp << " " << yp;
+                }
+                errorData << " Z";
+                file << " <path d=\"" << errorData.str()
+                    << "\" fill=\"" << Plot2D::plotLineColor
+                    << "\" fill-opacity=\"" << Plot2D::plotLineOpacity*0.4
+                    << "\" clip-path=\"url(#rect-plot-clip)\" />\n";
+                file << " <path d=\"" << errorLinePositive.str() << "\" fill=\"none"
+                    << "\" stroke=\"" << Plot2D::plotLineColor
+                    << "\" stroke-opacity=\"" << Plot2D::plotLineOpacity*0.5
+                    << "\" stroke-width=\"" << Plot2D::plotLineWidth*0.5
+                    << "\" stroke-linecap=\"round"
+                    << "\" stroke-linejoin=\"round\""
+                    << dashArrayAttr
+                    << " clip-path=\"url(#rect-plot-clip)\" />\n";
+                file << " <path d=\"" << errorLineNegative.str() << "\" fill=\"none"
+                    << "\" stroke=\"" << Plot2D::plotLineColor
+                    << "\" stroke-opacity=\"" << Plot2D::plotLineOpacity*0.5
+                    << "\" stroke-width=\"" << Plot2D::plotLineWidth*0.5
+                    << "\" stroke-linecap=\"round"
+                    << "\" stroke-linejoin=\"round\""
+                    << dashArrayAttr
+                    << " clip-path=\"url(#rect-plot-clip)\" />\n";
+            }
             if (xVals.size()>=std::floor(Plot2D::drawW/(13*Plot2D::plotLineWidth)))
             {
                 std::stringstream pathData;
-                pathData << "M ";
-                if ( xVals[0]<=xMax && xVals[0]>=xMin && yVals[0]<=yMax && yVals[0]>=yMin )
-                {
-                    pathData << Plot2D::toPixelX(xVals[0])
-                    << " " << Plot2D::toPixelY(yVals[0]);
-                }
+                xp = std::clamp(Plot2D::toPixelX(xVals[0]),-1.0,width+1.0);
+                yp = std::clamp(Plot2D::toPixelY(yVals[0]),-1.0,height+1.0);
+                pathData << "M " << xp << " " << yp;
                 for ( size_t i=1; i<Plot2D::xVals.size(); ++i )
                 {
-                    if ( xVals[i]<=xMax && xVals[i]>=xMin && yVals[i]<=yMax && yVals[i]>=yMin )
+                    xpPre = xp;
+                    ypPre = yp;
+                    xp = std::clamp(Plot2D::toPixelX(xVals[i]),-1.0,width+1.0);
+                    yp = std::clamp(Plot2D::toPixelY(yVals[i]),-1.0,height+1.0);
+                    if (std::abs(ypPre-yp)>=yContinuityThreshold)
                     {
-                        pathData << " L " << Plot2D::toPixelX(xVals[i])
-                                << " " << Plot2D::toPixelY(yVals[i]);
+                        pathData << " M " << xp << " " << yp;
+                    }
+                    else
+                    {
+                        pathData << " L " << xp << " " << yp;
                     }
                 }
                 file << " <path d=\"" << pathData.str() << "\" fill=\"none"
@@ -1466,32 +1679,35 @@ inline void Plot2D::plotSVG(const std::string& filename)
                     << "\" stroke-width=\"" << Plot2D::plotLineWidth
                     << "\" stroke-linecap=\"round"
                     << "\" stroke-linejoin=\"round\""
-                    << dashArrayAttr << " />\n";
+                    << dashArrayAttr << " clip-path=\"url(#rect-plot-clip)\" />\n";
             }
             else
             {
                 std::stringstream pathData;
-                pathData << "M ";
-                if ( xVals[0]<=xMax && xVals[0]>=xMin && yVals[0]<=yMax && yVals[0]>=yMin )
+                xp = std::clamp(Plot2D::toPixelX(xVals[0]),-1.0,width+1.0);
+                yp = std::clamp(Plot2D::toPixelY(yVals[0]),-1.0,height+1.0);
+                pathData << "M " << xp << " " << yp;
+                file << " <circle cx=\"" << xp << "\" cy=\"" << yp
+                    << "\" r=\"" << 1.25*Plot2D::plotLineWidth
+                    << "\" fill=\"" << Plot2D::plotLineColor
+                    << "\" fill-opacity=\"" << Plot2D::plotLineOpacity << "\" clip-path=\"url(#rect-plot-clip)\" />\n";
+                for ( size_t i=1; i<Plot2D::xVals.size(); ++i )
                 {
-                    pathData << Plot2D::toPixelX(xVals[0])
-                            << " " << Plot2D::toPixelY(yVals[0]);
-                }
-                for ( size_t i=0; i<Plot2D::xVals.size(); ++i )
-                {
-                    double xp = Plot2D::toPixelX(Plot2D::xVals[i]);
-                    double yp = Plot2D::toPixelY(Plot2D::yVals[i]);
-                    if ( xp<=xMax && xp>=xMin && yp<=yMax && yp>=yMin )
+                    xpPre = xp;
+                    ypPre = yp;
+                    xp = std::clamp(Plot2D::toPixelX(xVals[i]),-1.0,width+1.0);
+                    yp = std::clamp(Plot2D::toPixelY(yVals[i]),-1.0,height+1.0);
+                    file << " <circle cx=\"" << xp << "\" cy=\"" << yp
+                        << "\" r=\"" << 1.25*Plot2D::plotLineWidth
+                        << "\" fill=\"" << Plot2D::plotLineColor
+                        << "\" fill-opacity=\"" << Plot2D::plotLineOpacity << "\" clip-path=\"url(#rect-plot-clip)\" />\n";
+                    if (std::abs(ypPre-yp)>=yContinuityThreshold)
                     {
-                        file << " <circle cx=\"" << xp << "\" cy=\"" << yp
-                            << "\" r=\"" << 1.25*Plot2D::plotLineWidth
-                            << "\" fill=\"" << Plot2D::plotLineColor
-                            << "\" fill-opacity=\"" << Plot2D::plotLineOpacity << "\" />\n";
-                        if ( i>0 )
-                        {
-                            pathData << " L " << Plot2D::toPixelX(xVals[i])
-                                << " " << Plot2D::toPixelY(yVals[i]);
-                        }
+                        pathData << " M " << xp << " " << yp;
+                    }
+                    else
+                    {
+                        pathData << " L " << xp << " " << yp;
                     }
                 }
                 file << " <path d=\"" << pathData.str() << "\" fill=\"none"
@@ -1500,7 +1716,7 @@ inline void Plot2D::plotSVG(const std::string& filename)
                     << "\" stroke-width=\"" << Plot2D::plotLineWidth
                     << "\" stroke-linecap=\"round"
                     << "\" stroke-linejoin=\"round\""
-                    << dashArrayAttr << " />\n";
+                    << dashArrayAttr << " clip-path=\"url(#rect-plot-clip)\" />\n";
             }
             for ( auto pd : plotData )
             {
@@ -1527,21 +1743,73 @@ inline void Plot2D::plotSVG(const std::string& filename)
                         dashArrayAttr = "";
                         break;
                 }
+                std::stringstream errorData;
+                std::stringstream errorLinePositive;
+                std::stringstream errorLineNegative;
+                if (pd.errorPlot)
+                {
+                    xp = std::clamp(Plot2D::toPixelX(pd.xs[0]),-1.0,width+1.0);
+                    yp = std::clamp(Plot2D::toPixelY(pd.ysErrorsPositive[0]),-1.0,height+1.0);
+                    errorData << "M " << xp << " " << yp;
+                    errorLinePositive << "M " << xp << " " << yp;
+                    yp = std::clamp(Plot2D::toPixelY(pd.ysErrorsNegative[0]),-1.0,height+1.0);
+                    errorLineNegative << "M " << xp << " " << yp;
+                    for ( size_t i=1; i<pd.xs.size(); ++i )
+                    {
+                        xp = std::clamp(Plot2D::toPixelX(pd.xs[i]),-1.0,width+1.0);
+                        yp = std::clamp(Plot2D::toPixelY(pd.ysErrorsPositive[i]),-1.0,height+1.0);
+                        errorData << " L " << xp << " " << yp;
+                        errorLinePositive << " L " << xp << " " << yp;
+                        yp = std::clamp(Plot2D::toPixelY(pd.ysErrorsNegative[i]),-1.0,height+1.0);
+                        errorLineNegative << " L " << xp << " " << yp;
+                    }
+                    for ( size_t i=Plot2D::xVals.size()-1; i>0; --i )
+                    {
+                        xp = std::clamp(Plot2D::toPixelX(pd.xs[i]),-1.0,width+1.0);
+                        yp = std::clamp(Plot2D::toPixelY(pd.ysErrorsNegative[i]),-1.0,height+1.0);
+                        errorData << " L " << xp << " " << yp;
+                    }
+                    errorData << " Z";
+                    file << " <path d=\"" << errorData.str()
+                        << "\" fill=\"" << pd.lineColor
+                        << "\" fill-opacity=\"" << pd.lineOpacity*0.4
+                        << "\" clip-path=\"url(#rect-plot-clip)\" />\n";
+                    file << " <path d=\"" << errorLinePositive.str() << "\" fill=\"none"
+                        << "\" stroke=\"" << pd.lineColor
+                        << "\" stroke-opacity=\"" << pd.lineOpacity*0.5
+                        << "\" stroke-width=\"" << pd.lineWidth*0.5
+                        << "\" stroke-linecap=\"round"
+                        << "\" stroke-linejoin=\"round\""
+                        << dashArrayAttr
+                        << " clip-path=\"url(#rect-plot-clip)\" />\n";
+                    file << " <path d=\"" << errorLineNegative.str() << "\" fill=\"none"
+                        << "\" stroke=\"" << pd.lineColor
+                        << "\" stroke-opacity=\"" << pd.lineOpacity*0.5
+                        << "\" stroke-width=\"" << pd.lineWidth*0.5
+                        << "\" stroke-linecap=\"round"
+                        << "\" stroke-linejoin=\"round\""
+                        << dashArrayAttr
+                        << " clip-path=\"url(#rect-plot-clip)\" />\n";
+                }
                 if (pd.xs.size()>=std::floor(Plot2D::drawW/(13*pd.lineWidth)))
                 {
                     std::stringstream pathData;
-                    pathData << "M ";
-                    if ( pd.xs[0]<=xMax && pd.xs[0]>=xMin && pd.ys[0]<=yMax && pd.ys[0]>=yMin )
-                    {
-                        pathData << Plot2D::toPixelX(pd.xs[0])
-                            << " " << Plot2D::toPixelY(pd.ys[0]);
-                    }
+                    xp = std::clamp(Plot2D::toPixelX(pd.xs[0]),-1.0,width+1.0);
+                    yp = std::clamp(Plot2D::toPixelY(pd.ys[0]),-1.0,height+1.0);
+                    pathData << "M " << xp << " " << yp;
                     for ( size_t i=1; i<pd.xs.size(); ++i )
                     {
-                        if ( pd.xs[i]<=xMax && pd.xs[i]>=xMin && pd.ys[i]<=yMax && pd.ys[i]>=yMin )
+                        xpPre = xp;
+                        ypPre = yp;
+                        xp = std::clamp(Plot2D::toPixelX(pd.xs[i]),-1.0,width+1.0);
+                        yp = std::clamp(Plot2D::toPixelY(pd.ys[i]),-1.0,height+1.0);
+                        if (std::abs(ypPre-yp)>=yContinuityThreshold)
                         {
-                            pathData << " L " << Plot2D::toPixelX(pd.xs[i])
-                                << " " << Plot2D::toPixelY(pd.ys[i]);
+                            pathData << " M " << xp << " " << yp;
+                        }
+                        else
+						{
+                            pathData << " L " << xp << " " << yp;
                         }
                     }
                     file << " <path d=\"" << pathData.str() << "\" fill=\"none"
@@ -1550,32 +1818,35 @@ inline void Plot2D::plotSVG(const std::string& filename)
                         << "\" stroke-width=\"" << pd.lineWidth
                         << "\" stroke-linecap=\"round"
                         << "\" stroke-linejoin=\"round\""
-                        << dashArrayAttr << " />\n";
+                        << dashArrayAttr << " clip-path=\"url(#rect-plot-clip)\" />\n";
                 }
                 else
                 {
                     std::stringstream pathData;
-                    pathData << "M ";
-                    if ( pd.xs[0]<=xMax && pd.xs[0]>=xMin && pd.ys[0]<=yMax && pd.ys[0]>=yMin )
+                    xp = std::clamp(Plot2D::toPixelX(pd.xs[0]),-1.0,width+1.0);
+                    yp = std::clamp(Plot2D::toPixelY(pd.ys[0]),-1.0,height+1.0);
+                    pathData << "M " << xp << " " << yp;
+                    file << " <circle cx=\"" << xp << "\" cy=\"" << yp
+                        << "\" r=\"" << 1.25*pd.lineWidth
+                        << "\" fill=\"" << pd.lineColor
+                        << "\" fill-opacity=\"" << pd.lineOpacity << "\" clip-path=\"url(#rect-plot-clip)\" />\n";
+                    for ( size_t i=1; i<pd.xs.size(); ++i )
                     {
-                        pathData << Plot2D::toPixelX(pd.xs[0])
-                            << " " << Plot2D::toPixelY(pd.ys[0]);
-                    }
-                    for ( size_t i=0; i<pd.xs.size(); ++i )
-                    {
-                        double xp = Plot2D::toPixelX(pd.xs[i]);
-                        double yp = Plot2D::toPixelY(pd.ys[i]);
-                        if ( xp<=xMax && xp>=xMin && yp<=yMax && yp>=yMin )
+                        xpPre = xp;
+                        ypPre = yp;
+                        xp = std::clamp(Plot2D::toPixelX(pd.xs[i]),-1.0,width+1.0);
+                        yp = std::clamp(Plot2D::toPixelY(pd.ys[i]),-1.0,height+1.0);
+                        file << " <circle cx=\"" << xp << "\" cy=\"" << yp
+                            << "\" r=\"" << 1.25*pd.lineWidth
+                            << "\" fill=\"" << pd.lineColor
+                            << "\" fill-opacity=\"" << pd.lineOpacity << "\" clip-path=\"url(#rect-plot-clip)\" />\n";
+                        if (std::abs(ypPre-yp)>=yContinuityThreshold)
                         {
-                            file << " <circle cx=\"" << xp << "\" cy=\"" << yp
-                                << "\" r=\"" << 1.25*pd.lineWidth
-                                << "\" fill=\"" << pd.lineColor
-                                << "\" fill-opacity=\"" << pd.lineOpacity << "\" />\n";
-                            if ( i>0 )
-                            {
-                                pathData << " L " << Plot2D::toPixelX(pd.xs[i])
-                                    << " " << Plot2D::toPixelY(pd.ys[i]);
-                            }
+                            pathData << " M " << xp << " " << yp;
+                        }
+                        else
+                        {
+                            pathData << " L " << xp << " " << yp;
                         }
                     }
                     file << " <path d=\"" << pathData.str() << "\" fill=\"none"
@@ -1584,7 +1855,7 @@ inline void Plot2D::plotSVG(const std::string& filename)
                         << "\" stroke-width=\"" << pd.lineWidth
                         << "\" stroke-linecap=\"round"
                         << "\" stroke-linejoin=\"round\""
-                        << dashArrayAttr << " />\n";
+                        << dashArrayAttr << " clip-path=\"url(#rect-plot-clip)\" />\n";
                 }
             }
             std::cout << "Plot generated and compiled to: " << filename << '\n';
