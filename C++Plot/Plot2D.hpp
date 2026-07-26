@@ -15,7 +15,7 @@ template<typename T>
 using Vec  = std::vector<T>;
 using dVec = Vec<double>;
 
-double estimateStringWidth(const std::string& text, double fontsize)
+inline double estimateStringWidth(const std::string& text, double fontsize)
 {
     std::string text_ = text;
     size_t pos = 0;
@@ -125,6 +125,30 @@ class Plot2DData
 			}
         };
 };
+
+inline std::string dashArrayAttribute(LineStyle ls, double w)
+{
+    std::string dashArrayAttr;
+    // writing original data
+    switch (ls)
+    {
+        case LineStyle::Dashed:
+            dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*w)+","+std::to_string(w)+"\"";
+            break;
+        case LineStyle::Dotted:
+            dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*w)+","+std::to_string(w)+"\"";
+            break;
+        case LineStyle::DashDot:
+            dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*w)+","+std::to_string(w)
+            +std::to_string(0.05*w)+","+std::to_string(w)+"\"";
+            break;
+        case LineStyle::Solid:
+        default:
+            dashArrayAttr = "";
+            break;
+    }
+	return dashArrayAttr;
+}
 
 enum class LegendPos
 {
@@ -306,7 +330,7 @@ class Plot2D
                 throw std::runtime_error("The data is empty! You must provide at least one set of data.");
             if ( (2*padding>=width) || (2*padding>=height) )
                 throw std::runtime_error("Padding is two large! It exceeds the height or width parameters.");
-            for ( const auto pd : data )
+            for ( const auto& pd : data )
             {
                 if ( (pd.xs.size() != pd.ys.size()) || (pd.xs.empty()) || (pd.ys.empty()) )
                     continue;
@@ -342,7 +366,7 @@ class Plot2D
         {
             if ( plotdata.empty() )
                 throw std::runtime_error("The data is empty! You must provide at least one set of data.");
-            for ( const auto pd : plotdata )
+            for ( const auto& pd : plotdata )
             {
                 if ( (pd.xs.size() != pd.ys.size()) || (pd.xs.empty()) ) continue;
                 if ( pd.errorPlot && (pd.errors.size()!=pd.ys.size()) ) continue;
@@ -614,7 +638,7 @@ inline void Plot2D::Setup()
     }
     if ( !plotData.empty())
     {
-        for ( const auto pd : plotData )
+        for ( const auto& pd : plotData )
         {
             adjustMinMax(pd.xs,pd.ys);
         }
@@ -917,28 +941,7 @@ inline void Plot2D::Plot()
     {
         file << "\n";
         // The data points.
-        std::string dashArrayAttr = "";
-        switch (Plot2D::plotLineStyle)
-        {
-            case LineStyle::Dashed:
-                dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)
-                +","+std::to_string(Plot2D::plotLineWidth)+"\"";
-                break;
-            case LineStyle::Dotted:
-                dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)
-                +","+std::to_string(Plot2D::plotLineWidth)+"\"";
-                break;
-            case LineStyle::DashDot:
-                dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)
-                +","+std::to_string(Plot2D::plotLineWidth)
-                +","+std::to_string(0.05*Plot2D::plotLineWidth)
-                +","+std::to_string(Plot2D::plotLineWidth)+"\"";
-                break;
-            case LineStyle::Solid:
-            default:
-                dashArrayAttr = "";
-                break;
-        }
+        std::string dashArrayAttr = dashArrayAttribute(Plot::plotLineStyle, Plot2D::plotLineWidth);
         std::stringstream errorData;
         std::stringstream errorLinePositive;
         std::stringstream errorLineNegative;
@@ -1049,32 +1052,11 @@ inline void Plot2D::Plot()
     // Plotting the plotData
     if ( !Plot2D::plotData.empty() )
     {
-        for ( auto pd : plotData )
+        for ( const auto& pd : plotData )
         {
             file << "\n";
             // The data points.
-            std::string dashArrayAttr = "";
-            switch (pd.lineStyle)
-            {
-                case LineStyle::Dashed:
-                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)
-                    +","+std::to_string(Plot2D::plotLineWidth)+"\"";
-                    break;
-                case LineStyle::Dotted:
-                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)
-                    +","+std::to_string(Plot2D::plotLineWidth)+"\"";
-                    break;
-                case LineStyle::DashDot:
-                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)
-                    +","+std::to_string(Plot2D::plotLineWidth)
-                    +","+std::to_string(0.05*Plot2D::plotLineWidth)
-                    +","+std::to_string(Plot2D::plotLineWidth)+"\"";
-                    break;
-                case LineStyle::Solid:
-                default:
-                    dashArrayAttr = "";
-                    break;
-            }
+            std::string dashArrayAttr = dashArrayAttribute(pd.lineStyle, pd.lineWidth);
             std::stringstream errorData;
             std::stringstream errorLinePositive;
             std::stringstream errorLineNegative;
@@ -1199,28 +1181,7 @@ inline void Plot2D::Plot(const Plot2DData& pd)
         throw std::runtime_error("Errors must be the same shape and size as y values!\n");
 	Plot2D::plotData.push_back(pd);
     // The data points.
-    std::string dashArrayAttr = "";
-    switch (pd.lineStyle)
-    {
-        case LineStyle::Dashed:
-            dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)
-            +","+std::to_string(Plot2D::plotLineWidth)+"\"";
-            break;
-        case LineStyle::Dotted:
-            dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)
-            +","+std::to_string(Plot2D::plotLineWidth)+"\"";
-            break;
-        case LineStyle::DashDot:
-            dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)
-            +","+std::to_string(Plot2D::plotLineWidth)
-            +","+std::to_string(0.05*Plot2D::plotLineWidth)
-            +","+std::to_string(Plot2D::plotLineWidth)+"\"";
-            break;
-        case LineStyle::Solid:
-        default:
-            dashArrayAttr = "";
-            break;
-    }
+    std::string dashArrayAttr = dashArrayAttribute(pd.lineStyle, pd.lineWidth);
     std::stringstream errorData;
     std::stringstream errorLinePositive;
     std::stringstream errorLineNegative;
@@ -1381,7 +1342,7 @@ inline void Plot2D::drawLegend()
     }
     if ( !Plot2D::plotData.empty() )
     {
-		for ( auto pd : Plot2D::plotData )
+		for ( const auto& pd : Plot2D::plotData )
         {
             legendWidth = std::max(estimateStringWidth(pd.lineLabel, Plot2D::legendFontSize)
             						+2.5*legendPad+50.0,legendWidth);
@@ -1426,23 +1387,7 @@ inline void Plot2D::drawLegend()
     if ( !Plot2D::xVals.empty() )
     {
         // writing original data
-        switch (Plot2D::plotLineStyle)
-        {
-            case LineStyle::Dashed:
-                dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)+","+std::to_string(Plot2D::plotLineWidth)+"\"";
-                break;
-            case LineStyle::Dotted:
-                dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(Plot2D::plotLineWidth)+"\"";
-                break;
-            case LineStyle::DashDot:
-                dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)+","+std::to_string(Plot2D::plotLineWidth)
-                +std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(Plot2D::plotLineWidth)+"\"";
-                break;
-            case LineStyle::Solid:
-            default:
-                dashArrayAttr = "";
-                break;
-        }
+        dashArrayAttr = dashArrayAttribute(Plot2D::plotLineStyle, Plot2D::plotLineWidth);
         itemY = legendY + legendPad;
         file << " <line x1=\"" << legendX+legendPad << "\" y1=\"" << itemY
             << "\" x2=\"" << legendX+legendPad+50.0 << "\" y2=\"" << itemY+2.0*Plot2D::legendFontSize
@@ -1461,27 +1406,11 @@ inline void Plot2D::drawLegend()
     }
     if ( !Plot2D::plotData.empty() )
     {
-        for ( auto pd : Plot2D::plotData )
+        for ( const auto& pd : Plot2D::plotData )
         {
             // itemY = legendY + counter*Plot2D::legendFontSize*2.0 + legendPad;
             itemY += Plot2D::legendFontSize*2.0;
-            switch (pd.lineStyle)
-            {
-                case LineStyle::Dashed:
-                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)+","+std::to_string(Plot2D::plotLineWidth)+"\"";
-                    break;
-                case LineStyle::Dotted:
-                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(Plot2D::plotLineWidth)+"\"";
-                    break;
-                case LineStyle::DashDot:
-                    dashArrayAttr = " stroke-dasharray=\""+std::to_string(2.0*Plot2D::plotLineWidth)+","+std::to_string(Plot2D::plotLineWidth)
-                    +std::to_string(0.05*Plot2D::plotLineWidth)+","+std::to_string(Plot2D::plotLineWidth)+"\"";
-                    break;
-                case LineStyle::Solid:
-                default:
-                    dashArrayAttr = "";
-                    break;
-            }
+            dashArrayAttr = dashArrayAttribute(pd.lineStyle, pd.lineWidth);
             file << " <line x1=\"" << legendX+legendPad << "\" y1=\"" << itemY
                 << "\" x2=\"" << legendX+legendPad+50.0 << "\" y2=\"" << itemY+2.0*Plot2D::legendFontSize
                 << "\" stroke=\"" << pd.lineColor
