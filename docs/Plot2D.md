@@ -18,6 +18,17 @@ There are two ways to initiate a class member:
 
 Although one can add new data to the plot after initiating for the single curve line type.
 
+**Plot:** To *plot*, follow these steps.
+
+- First initiate an instance of `Plot2D` class, e.g. `Plot2D plt(...);`, according to the specifications you want the *plot* to have.
+- Add data via `addData` or `addMultipleData` methods if your program requires that.
+- Set all the values and flags based on whatever feature you want to manipulate. e.g. `plt.setplotAxisLabelColor(255,0,0);`
+- Make sure to set up the *plot* by calling `plt.Setup();` **AFTER** setting all the values and flags.
+- After `Setup()` call the *plot*, i.e. `plt.Plot();`. If you want a data series to be plotted but didn't want it to affect the *min* and *max* values of the *x* and *y* you can add call `plt.Plot(data);` (here `data` is a `Plot2DData` instance that contains information needed for the plot).
+- Then call *legend* if you want the *legend box*, *labels* and *titles* to be shown in the plot, e.g. `plt.Legend()` (if you haven't set the flags for these elements to be shown then even after calling `Legend()` nothing will be added to the plot.)
+- Then call *save* to actually write the `.svg` file into your *disk*. `plt.Save("plot.svg")`.
+- You *CAN* save the trouble and call the `plotSVG(...)` function as `plt.plotSVG("plot.svg")` which will do call `Setup()`, `Canvas()`, `Plot()`, `Legend()`, and `Save(...)`, the downside being that you cannot use the `plt.Plot(data)` method.
+
 ## Table of Contents
 
 1. [Plot2D](#plot2d)
@@ -66,6 +77,8 @@ There are two different initializations (i.e. *constructors*) available.
 - **`bool xAxisVisible`:** Whether the *x-axis* is visible. This will be inferred from the data series and cannot be set forcefully (in an indirect way one can force the values of `yMin`, and `yMax` in a way that makes the *x-axis* visible).
 - **`bool yAxisVisible`:** Whether the *y-axis* is visible. This will be inferred from the data series and cannot be set forcefully (in an indirect way one can force the values of `xMin`, and `xMax` in a way that makes the *y-axis* visible).
 - **`bool errorPlot`:** Whether the *error* is plotted. (Error band plot flag).
+- **`bool forcedXMinMax=false`:** If `forceXMinMax` is called this flag is set to true (so that the `adjustMinMax` won't change `xMin` and `xMax` values.)
+- **`bool forcedYMinMax=false`:** If `forceYMinMax` is called this flag is set to true (so that the `adjustMinMax` won't change `yMin` and `yMax` values.)
 
 ### Labels and Titles
 
@@ -107,6 +120,7 @@ There are two different initializations (i.e. *constructors*) available.
 - **`dVec errors`:** The values of errors (must be the same size as `xVals` and `yVals`). *Note* that errors must be positive for it to make sense (as a measure of variation from `yVals` or something similar), but there is nothing to stop you from entering other values!
 - **`dVec yValsErrorsPositive`:** The values of `yVals+errors` (upper band path).
 - **`dVec yValsErrorsNegative`:** The values of `yVals-errors` (lower band path).
+- **`double yNumeralLongest=0.0`:** Used to set the length of the *longest* numeral string (numerals of *y*-axis). It is set inside `writeNumbers`. It is used inside `writeAxisLabels` to determine the placement of the *y* label.
 
 ### Values with Default
 
@@ -142,14 +156,17 @@ These are the functions that do the inner works of the plotting and only called 
 - **`inline double toPixelY( const double y) const {return (height-padding) - (y-yMin)*yScale;}`:** It converts *y* value into pixel value on vertical axis.
 - **`inline double toPointX( const double x) const {return (x-padding)/xScale + xMin;}`:** It converts pixel value to real *x* value.
 - **`inline double toPointY( const double y) const {return yMin - (y-height+padding)/yScale;}`:** It converts pixel value to real *y* value.
-- **`inline void drawTicks(std::ofstream& file)`:** It draws the ticks and derives and stores their positions. (if axes are visible it places ticks on both axes and on left and lower border line.)
-- **`inline void drawGrid(std::ofstream& file)`:** It draws the grid lines based on the tick placements.
-- **`inline void writeNumbers(std::ofstream& file)`:** It writes corresponding numbers next to tick marks placed on left and lower border line. 
-- **`inline void writeAxisLabels(std::ofstream& file)`:** It writes axis labels centeres and parallel to the corresponding axis.
-- **`inline void writeplotTitle(std::ofstream& file)`:** It writes plot title centered on the top of the plot.
-- **`inline void drawLegend(std::ofstream& file)`:** It draws the legend box and writes the line labels on the designated position.
+- **`inline void drawTicks(std::ofstream& file)`:** It draws the ticks and derives and stores their positions. (if axes are visible it places ticks on both axes and on left and lower border line). This function is called by `Canvas()` 
+- **`inline void drawGrid(std::ofstream& file)`:** It draws the grid lines based on the tick placements. This function is called by `Canvas()`
+- **`inline void writeNumbers(std::ofstream& file)`:** It writes corresponding numbers next to tick marks placed on left and lower border line. This function is called by `Canvas()`
+- **`inline void writeAxisLabels(std::ofstream& file)`:** It writes axis labels centeres and parallel to the corresponding axis. This function is called by `Legend()`
+- **`inline void writeplotTitle(std::ofstream& file)`:** It writes plot title centered on the top of the plot. This function is called by `Legend()`
+- **`inline void drawLegend(std::ofstream& file)`:** It draws the legend box and writes the line labels on the designated position. This function is called by `Legend()`
 - **`inline double calcAutoXTicksStep()`:** Calculates ticks in a way that they are multiples of {\dots, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, \dots}. It returns a value for `xStep`.
-- **`inline double calcAutoYTicksStep()`:** Calculates ticks in a way that they are multiples of {\dots, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, \dots}. It returns a value for `yStep`.
+- **`inline double calcAutoYTicksStep()`:** Calculates ticks in a way that they are multiples of {\dots, 0.1,0.125, 0.25, 0.5, 1.0, 1.25,2.5, 5.0, 10.0, \dots}. It returns a value for `yStep`.
+- **`inline void adjustRange()`:** Adjusts the `xRange` and `yRange` and makes sures that they are non-zero. (Called by `Setup()`, `forceXMinMax`, and `forceYMinMax`)
+- **`inline void adjustMinMax()`:** Adjusts `xMin`, `yMin`, `xMax`, and `yMax` based on all the data series provided on *initialization* and *added* later. Data series added to *plot* via `Plot(const Plot2DData& pd)` won't affect the values of *min* and *max*. (Called by `Setup()`)
+- **`inline void calculateTickPlacement()`:** This function calculates the placments of ticks based on which the *ticks* and *plot numerals* and *grids* will be placed. (Called by `Setup()`).
 
 ### Adding Data Series
 
@@ -218,7 +235,13 @@ These are the functions that do the inner works of the plotting and only called 
 
 ### Plotting
 
-Only plotting function is `inline void plotSVG(const std::string& filename)`.
+- **`inline void Setup()`:** This functions sets up the parameters based on the information the user has provided.
+- **`inline void Canvas()`:** This function provides the *canvas* for the *plots*.
+- **`inline void Plot()`:** This function provides the paths of the data series (all data series provided using `Plot2D` initializations and `addData` and `addMultipleData` up to the point of calling this function are plotted, calls of `addData` and `addMultipleData` won't be plotted if they happen after the call of `Plot()`).
+- **`inline void Plot(const Plot2DData& pd)`:** This function can be used to add data series to the plot after you called `Plot()`.
+- **`inline void Legend()`:** This function draws the *legend box* and also writes all *title*s and *label*s.
+- **`inline void Save(std::string filename)`:** This function outputs the *strings* that `Canvas`, `Plot`, and `Legend` have created into the given *file* with name *\<filename\>*.
+- **`inline void plotSVG(const std::string& filename)`:** This function does the whole *Setup*, *Canvas*, *Plot*, *Legend*, and *Save* all at onec. The downside is that you cannot do `plot.Plot(plotdata)` to add new path for a data series.
 
 ## `LineStyle` Enumeration Class
 
